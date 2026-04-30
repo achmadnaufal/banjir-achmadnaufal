@@ -25,6 +25,12 @@ const TIME_FORMATTER = new Intl.DateTimeFormat('en-GB', {
   hour12: false,
 })
 
+const DAY_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Jakarta',
+  day: '2-digit',
+  month: 'short',
+})
+
 const DATE_FORMATTER = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Asia/Jakarta',
   day: '2-digit',
@@ -33,6 +39,12 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('en-GB', {
   minute: '2-digit',
   hour12: false,
 })
+
+// Pesanggrahan sensor occasionally returns large negative values when the
+// gauge is offline or being recalibrated (e.g. -515 cm). Anything below
+// this floor is treated as a sensor anomaly and excluded from the chart.
+const ANOMALY_FLOOR_CM = -10
+const MULTI_DAY_THRESHOLD_MS = 36 * 60 * 60 * 1000
 
 type Theme = {
   axis: string
@@ -83,10 +95,12 @@ export function SiagaChart({ data, fallbackThresholdsCm }: Props) {
   const dark = usePrefersDark()
   const t = dark ? DARK : LIGHT
   const thresholds = data.thresholdsCm ?? fallbackThresholdsCm
-  const series = useMemo(
-    () => data.points.map((p) => ({ t: p.at.getTime(), cm: p.cm })),
-    [data.points],
-  )
+
+  const { series, droppedAnomalies } = useMemo(() => {
+    const raw = data.points.map((p) => ({ t: p.at.getTime(), cm: p.cm }))
+    const filtered = raw.filter((p) => p.cm >= ANOMALY_FLOOR_CM)
+    return { series: filtered, droppedAnomalies: raw.length - filtered.length }
+  }, [data.points])
 
   if (series.length === 0) {
     return (
@@ -98,8 +112,16 @@ export function SiagaChart({ data, fallbackThresholdsCm }: Props) {
 
   const minObserved = Math.min(...series.map((p) => p.cm))
   const maxObserved = Math.max(...series.map((p) => p.cm))
-  const yMax = Math.ceil(Math.max(thresholds.siaga1 * 1.1, maxObserved * 1.15) / 10) * 10
-  const yMin = Math.max(0, Math.floor(Math.min(minObserved, thresholds.siaga3) * 0.85 / 10) * 10)
+  const spanMs = series[series.length - 1].t - series[0].t
+  const isMultiDay = spanMs >= MULTI_DAY_THRESHOLD_MS
+  const xTickFormatter = (v: number) => {
+    const d = new Date(v)
+    return isMultiDay ? DAY_FORMATTER.format(d) : TIME_FORMATTER.format(d)
+  }
+
+  const yMax = Math.ceil(Math.max(thresholds.siaga1 * 1.05, maxObserved * 1.1) / 10) * 10
+  const yMinFloor = Math.min(minObserved, thresholds.siaga3)
+  const yMin = Math.max(0, Math.floor((yMinFloor - 20) / 10) * 10)
 
   return (
     <div className="aspect-[4/3] w-full rounded-2xl bg-white p-2 shadow-sm sm:aspect-[16/9] dark:bg-zinc-900">
@@ -111,7 +133,7 @@ export function SiagaChart({ data, fallbackThresholdsCm }: Props) {
             type="number"
             domain={['dataMin', 'dataMax']}
             scale="time"
-            tickFormatter={(v: number) => TIME_FORMATTER.format(new Date(v))}
+            tickFormatter={xTickFormatter}
             stroke={t.axis}
             tick={{ fill: t.axis, fontSize: 11 }}
             minTickGap={32}
@@ -140,6 +162,11 @@ export function SiagaChart({ data, fallbackThresholdsCm }: Props) {
           <Line type="monotone" dataKey="cm" stroke={t.line} strokeWidth={1.75} dot={false} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>
+      {droppedAnomalies > 0 && (
+        <p className="px-3 pb-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+          Hid {droppedAnomalies} sensor-anomaly point{droppedAnomalies === 1 ? '' : 's'} (negative readings).
+        </p>
+      )}
     </div>
   )
 }
