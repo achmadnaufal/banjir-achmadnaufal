@@ -4,6 +4,7 @@ dev-dist/
 coverage/
 .DS_Store
 *.log
+.wrangler/
 
 # editors
 .vscode/
