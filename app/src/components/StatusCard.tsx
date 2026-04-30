@@ -1,5 +1,5 @@
 import { formatLevel, formatStamp, timeSince, trendArrow } from '../lib/format'
-import { classify, trend } from '../lib/siaga'
+import { classify, trend, type Trend } from '../lib/siaga'
 import type { SnapshotRow } from '../types/upstream'
 import { SiagaBadge } from './SiagaBadge'
 
@@ -7,6 +7,18 @@ type Props = {
   snapshot: SnapshotRow
   isStale: boolean
   now: Date
+}
+
+const TREND_CLASS: Record<Trend, string> = {
+  up: 'text-red-600 dark:text-red-400',
+  down: 'text-emerald-600 dark:text-emerald-400',
+  flat: 'text-zinc-500 dark:text-zinc-400',
+}
+
+const TREND_LABEL: Record<Trend, string> = {
+  up: 'rising',
+  down: 'falling',
+  flat: 'flat',
 }
 
 export function StatusCard({ snapshot, isStale, now }: Props) {
@@ -29,12 +41,17 @@ export function StatusCard({ snapshot, isStale, now }: Props) {
         )}
       </div>
       <p className="text-6xl font-bold tabular-nums">{formatLevel(snapshot.levelCm)}</p>
-      <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-        <span aria-hidden className="mr-1 inline-block">{arrow}</span>
+      <p className="mt-2 text-sm">
+        <span
+          aria-label={`Trend ${TREND_LABEL[direction]}`}
+          className={`mr-1 inline-block font-semibold ${TREND_CLASS[direction]}`}
+        >
+          {arrow}
+        </span>
         {delta === null ? (
-          <span>no previous reading</span>
+          <span className="text-zinc-500 dark:text-zinc-400">no previous reading</span>
         ) : (
-          <span>
+          <span className={TREND_CLASS[direction]}>
             {delta > 0 ? '+' : ''}
             {delta.toFixed(1)} cm vs prev
           </span>
