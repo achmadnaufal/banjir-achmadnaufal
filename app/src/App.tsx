@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { PESANGGRAHAN, STALE_AFTER_MS } from './config/station'
 import { useLatest } from './hooks/useLatest'
 import { useHistory, type Range } from './hooks/useHistory'
+import { useTheme } from './hooks/useTheme'
 import { useTransitionAlert } from './hooks/useTransitionAlert'
 import { classify } from './lib/siaga'
 import { AlertOptIn } from './components/AlertOptIn'
@@ -11,6 +12,7 @@ import { Map } from './components/Map'
 import { RangeToggle } from './components/RangeToggle'
 import { SiagaChart } from './components/SiagaChart'
 import { StatusCard } from './components/StatusCard'
+import { ThemeToggle } from './components/ThemeToggle'
 
 function useNow(intervalMs: number): Date {
   const [now, setNow] = useState<Date>(() => new Date())
@@ -23,6 +25,7 @@ function useNow(intervalMs: number): Date {
 
 function App() {
   const now = useNow(30_000)
+  const theme = useTheme()
   const latest = useLatest()
   const [range, setRange] = useState<Range>('24h')
   const history = useHistory(range)
@@ -36,13 +39,19 @@ function App() {
   return (
     <ErrorBoundary>
       <div className="mx-auto max-w-screen-sm space-y-4 p-4">
-        <header className="flex items-baseline justify-between border-b border-zinc-200 pb-3 dark:border-zinc-800">
+        <header className="flex items-center justify-between border-b border-zinc-200 pb-3 dark:border-zinc-800">
           <div>
-            <h1 className="text-lg font-semibold">Banjir Pesanggrahan</h1>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              {PESANGGRAHAN.name} · Sungai {PESANGGRAHAN.river}
+            <h1 className="text-lg font-semibold leading-tight">
+              Monitor Banjir
+            </h1>
+            <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              Cinangka Paradisa Residence
+            </p>
+            <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+              data: {PESANGGRAHAN.name} · Sungai {PESANGGRAHAN.river}
             </p>
           </div>
+          <ThemeToggle preference={theme.preference} onCycle={theme.cycle} />
         </header>
 
         {latest.data ? (
@@ -75,7 +84,11 @@ function App() {
             <RangeToggle value={range} onChange={setRange} />
           </div>
           {history.data ? (
-            <SiagaChart data={history.data} fallbackThresholdsCm={PESANGGRAHAN.fallbackThresholdsCm} />
+            <SiagaChart
+              data={history.data}
+              fallbackThresholdsCm={PESANGGRAHAN.fallbackThresholdsCm}
+              theme={theme.resolved}
+            />
           ) : history.error ? (
             <div className="rounded-2xl bg-white p-6 text-sm text-zinc-500 shadow-sm dark:bg-zinc-900 dark:text-zinc-400">
               Could not load chart: {history.error.message}

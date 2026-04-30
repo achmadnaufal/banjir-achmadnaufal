@@ -10,12 +10,13 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { usePrefersDark } from '../hooks/usePrefersDark'
+import type { ResolvedTheme } from '../hooks/useTheme'
 import type { HistoryResponse, ThresholdsCm } from '../types/upstream'
 
 type Props = {
   data: HistoryResponse
   fallbackThresholdsCm: ThresholdsCm
+  theme: ResolvedTheme
 }
 
 const TIME_FORMATTER = new Intl.DateTimeFormat('en-GB', {
@@ -91,9 +92,8 @@ const DARK: Theme = {
   lineSiaga1: '#f87171',
 }
 
-export function SiagaChart({ data, fallbackThresholdsCm }: Props) {
-  const dark = usePrefersDark()
-  const t = dark ? DARK : LIGHT
+export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
+  const t = theme === 'dark' ? DARK : LIGHT
   const thresholds = data.thresholdsCm ?? fallbackThresholdsCm
 
   const { series, droppedAnomalies } = useMemo(() => {

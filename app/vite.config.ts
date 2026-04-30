@@ -14,9 +14,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Banjir Pesanggrahan',
-        short_name: 'Pesanggrahan',
-        description: 'Live water level + early-warning alerts for the Pesanggrahan observation post',
+        name: 'Monitor Banjir — Cinangka Paradisa Residence',
+        short_name: 'Monitor Banjir',
+        description: 'Live water level + early-warning alerts for Cinangka Paradisa Residence, via the Pesanggrahan gauge',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
