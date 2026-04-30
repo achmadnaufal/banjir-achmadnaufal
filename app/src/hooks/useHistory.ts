@@ -3,13 +3,32 @@ import { HISTORY_REFRESH_MS, PESANGGRAHAN } from '../config/station'
 import { fetchHistory } from '../lib/upstream'
 import type { HistoryResponse } from '../types/upstream'
 
-export type Range = '24h' | '7d'
+export type Range = '6h' | '12h' | '24h' | '7d'
 
-function rangeBounds(range: Range, now: Date): { start: Date; end: Date } {
-  const end = now
-  const days = range === '24h' ? 1 : 7
-  const start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000)
-  return { start, end }
+const RANGE_HOURS: Record<Range, number> = {
+  '6h': 6,
+  '12h': 12,
+  '24h': 24,
+  '7d': 24 * 7,
+}
+
+const HOUR_MS = 60 * 60 * 1000
+
+type Bounds = {
+  fetchStart: Date
+  fetchEnd: Date
+  windowStart: Date
+}
+
+function rangeBounds(range: Range, now: Date): Bounds {
+  const hours = RANGE_HOURS[range]
+  const fetchEnd = now
+  // Upstream only accepts whole-day boundaries; fetch the smallest whole-day
+  // span that covers the window, then trim client-side.
+  const fetchHours = hours <= 24 ? 24 : hours
+  const fetchStart = new Date(fetchEnd.getTime() - fetchHours * HOUR_MS)
+  const windowStart = new Date(fetchEnd.getTime() - hours * HOUR_MS)
+  return { fetchStart, fetchEnd, windowStart }
 }
 
 export type UseHistoryState = {
@@ -37,10 +56,15 @@ export function useHistory(range: Range): UseHistoryState {
       inflight = ac
       setIsLoading(true)
       try {
-        const { start, end } = rangeBounds(range, new Date())
-        const result = await fetchHistory(PESANGGRAHAN.id, start, end, { signal: ac.signal })
+        const { fetchStart, fetchEnd, windowStart } = rangeBounds(range, new Date())
+        const result = await fetchHistory(PESANGGRAHAN.id, fetchStart, fetchEnd, { signal: ac.signal })
         if (cancelled) return
-        setData(result)
+        const minMs = windowStart.getTime()
+        const trimmed =
+          result.points.length === 0
+            ? result
+            : { ...result, points: result.points.filter((p) => p.at.getTime() >= minMs) }
+        setData(trimmed)
         setError(null)
       } catch (err) {
         if (cancelled || ac.signal.aborted) return

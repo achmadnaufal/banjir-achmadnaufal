@@ -1,6 +1,8 @@
 import type { Range } from '../hooks/useHistory'
 
 const OPTIONS: { value: Range; label: string }[] = [
+  { value: '6h', label: '6h' },
+  { value: '12h', label: '12h' },
   { value: '24h', label: '24h' },
   { value: '7d', label: '7d' },
 ]
@@ -22,7 +24,7 @@ export function RangeToggle({ value, onChange }: Props) {
             role="tab"
             aria-selected={active}
             onClick={() => onChange(opt.value)}
-            className={`min-w-12 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`min-w-10 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors sm:min-w-12 sm:px-3 ${
               active
                 ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-50'
                 : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
