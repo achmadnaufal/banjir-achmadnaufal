@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { usePrefersDark } from '../hooks/usePrefersDark'
 import type { HistoryResponse, ThresholdsCm } from '../types/upstream'
 
 type Props = {
@@ -33,7 +34,54 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('en-GB', {
   hour12: false,
 })
 
+type Theme = {
+  axis: string
+  grid: string
+  line: string
+  tooltipBg: string
+  tooltipText: string
+  bandSiaga3: string
+  bandSiaga2: string
+  bandSiaga1: string
+  bandNormal: string
+  lineSiaga3: string
+  lineSiaga2: string
+  lineSiaga1: string
+}
+
+const LIGHT: Theme = {
+  axis: '#71717a',
+  grid: '#e4e4e7',
+  line: '#0f172a',
+  tooltipBg: 'rgba(24,24,27,0.92)',
+  tooltipText: '#fafafa',
+  bandNormal: '#10b981',
+  bandSiaga3: '#fde047',
+  bandSiaga2: '#fb923c',
+  bandSiaga1: '#ef4444',
+  lineSiaga3: '#ca8a04',
+  lineSiaga2: '#ea580c',
+  lineSiaga1: '#dc2626',
+}
+
+const DARK: Theme = {
+  axis: '#a1a1aa',
+  grid: '#3f3f46',
+  line: '#e2e8f0',
+  tooltipBg: 'rgba(244,244,245,0.95)',
+  tooltipText: '#18181b',
+  bandNormal: '#34d399',
+  bandSiaga3: '#facc15',
+  bandSiaga2: '#fb923c',
+  bandSiaga1: '#f87171',
+  lineSiaga3: '#facc15',
+  lineSiaga2: '#fb923c',
+  lineSiaga1: '#f87171',
+}
+
 export function SiagaChart({ data, fallbackThresholdsCm }: Props) {
+  const dark = usePrefersDark()
+  const t = dark ? DARK : LIGHT
   const thresholds = data.thresholdsCm ?? fallbackThresholdsCm
   const series = useMemo(
     () => data.points.map((p) => ({ t: p.at.getTime(), cm: p.cm })),
@@ -48,44 +96,48 @@ export function SiagaChart({ data, fallbackThresholdsCm }: Props) {
     )
   }
 
+  const minObserved = Math.min(...series.map((p) => p.cm))
   const maxObserved = Math.max(...series.map((p) => p.cm))
-  const yMax = Math.ceil(Math.max(thresholds.siaga1 * 1.1, maxObserved * 1.15) / 50) * 50
+  const yMax = Math.ceil(Math.max(thresholds.siaga1 * 1.1, maxObserved * 1.15) / 10) * 10
+  const yMin = Math.max(0, Math.floor(Math.min(minObserved, thresholds.siaga3) * 0.85 / 10) * 10)
 
   return (
     <div className="aspect-[4/3] w-full rounded-2xl bg-white p-2 shadow-sm sm:aspect-[16/9] dark:bg-zinc-900">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={series} margin={{ top: 16, right: 24, bottom: 8, left: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" strokeOpacity={0.4} />
+          <CartesianGrid strokeDasharray="3 3" stroke={t.grid} strokeOpacity={0.5} />
           <XAxis
             dataKey="t"
             type="number"
             domain={['dataMin', 'dataMax']}
             scale="time"
             tickFormatter={(v: number) => TIME_FORMATTER.format(new Date(v))}
-            stroke="#a1a1aa"
-            fontSize={11}
+            stroke={t.axis}
+            tick={{ fill: t.axis, fontSize: 11 }}
             minTickGap={32}
           />
           <YAxis
-            domain={[0, yMax]}
-            stroke="#a1a1aa"
-            fontSize={11}
+            domain={[yMin, yMax]}
+            stroke={t.axis}
+            tick={{ fill: t.axis, fontSize: 11 }}
             tickFormatter={(v) => `${v}`}
-            label={{ value: 'cm', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#a1a1aa' }}
+            label={{ value: 'cm', angle: -90, position: 'insideLeft', fontSize: 11, fill: t.axis }}
           />
-          <ReferenceArea y1={0} y2={thresholds.siaga3} fill="#10b981" fillOpacity={0.12} />
-          <ReferenceArea y1={thresholds.siaga3} y2={thresholds.siaga2} fill="#fde047" fillOpacity={0.18} />
-          <ReferenceArea y1={thresholds.siaga2} y2={thresholds.siaga1} fill="#fb923c" fillOpacity={0.18} />
-          <ReferenceArea y1={thresholds.siaga1} y2={yMax} fill="#ef4444" fillOpacity={0.18} />
-          <ReferenceLine y={thresholds.siaga3} stroke="#ca8a04" strokeDasharray="4 4" label={{ value: 'siaga 3', position: 'right', fontSize: 10, fill: '#ca8a04' }} />
-          <ReferenceLine y={thresholds.siaga2} stroke="#ea580c" strokeDasharray="4 4" label={{ value: 'siaga 2', position: 'right', fontSize: 10, fill: '#ea580c' }} />
-          <ReferenceLine y={thresholds.siaga1} stroke="#dc2626" strokeDasharray="4 4" label={{ value: 'siaga 1', position: 'right', fontSize: 10, fill: '#dc2626' }} />
+          <ReferenceArea y1={yMin} y2={thresholds.siaga3} fill={t.bandNormal} fillOpacity={0.12} />
+          <ReferenceArea y1={thresholds.siaga3} y2={thresholds.siaga2} fill={t.bandSiaga3} fillOpacity={0.18} />
+          <ReferenceArea y1={thresholds.siaga2} y2={thresholds.siaga1} fill={t.bandSiaga2} fillOpacity={0.18} />
+          <ReferenceArea y1={thresholds.siaga1} y2={yMax} fill={t.bandSiaga1} fillOpacity={0.18} />
+          <ReferenceLine y={thresholds.siaga3} stroke={t.lineSiaga3} strokeDasharray="4 4" label={{ value: 'siaga 3', position: 'right', fontSize: 10, fill: t.lineSiaga3 }} />
+          <ReferenceLine y={thresholds.siaga2} stroke={t.lineSiaga2} strokeDasharray="4 4" label={{ value: 'siaga 2', position: 'right', fontSize: 10, fill: t.lineSiaga2 }} />
+          <ReferenceLine y={thresholds.siaga1} stroke={t.lineSiaga1} strokeDasharray="4 4" label={{ value: 'siaga 1', position: 'right', fontSize: 10, fill: t.lineSiaga1 }} />
           <Tooltip
-            contentStyle={{ background: 'rgba(24,24,27,0.92)', border: 'none', color: '#fafafa', fontSize: 12 }}
+            contentStyle={{ background: t.tooltipBg, border: 'none', color: t.tooltipText, fontSize: 12, borderRadius: 8 }}
+            labelStyle={{ color: t.tooltipText }}
+            itemStyle={{ color: t.tooltipText }}
             labelFormatter={(label) => DATE_FORMATTER.format(new Date(Number(label)))}
             formatter={(value) => [`${Number(value)} cm`, 'Level'] as [string, string]}
           />
-          <Line type="monotone" dataKey="cm" stroke="#0f172a" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+          <Line type="monotone" dataKey="cm" stroke={t.line} strokeWidth={1.75} dot={false} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>

@@ -36,6 +36,6 @@ describe('fetchHistory', () => {
     vi.spyOn(global, 'fetch').mockResolvedValue(new Response(historyText, { status: 200 }))
     const r = await fetchHistory(160, new Date('2026-04-29T00:00:00+07:00'), new Date('2026-04-30T23:59:00+07:00'))
     expect(r.points.length).toBeGreaterThan(100)
-    expect(r.thresholdsCm).toEqual({ siaga1: 3500, siaga2: 2500, siaga3: 1500 })
+    expect(r.thresholdsCm).toEqual({ siaga1: 350, siaga2: 250, siaga3: 150 })
   })
 })

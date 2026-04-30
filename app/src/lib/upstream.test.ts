@@ -96,7 +96,7 @@ describe('parseHistoryBody', () => {
   it('parses the canned 24h fixture', () => {
     const result = parseHistoryBody(historyText)
     expect(result.points.length).toBeGreaterThan(100)
-    expect(result.thresholdsCm).toEqual({ siaga1: 3500, siaga2: 2500, siaga3: 1500 })
+    expect(result.thresholdsCm).toEqual({ siaga1: 350, siaga2: 250, siaga3: 150 })
     const first = result.points[0]
     expect(first.cm).toBeGreaterThan(0)
     expect(first.at).toBeInstanceOf(Date)
@@ -109,7 +109,7 @@ describe('parseHistoryBody', () => {
     expect(r.points).toHaveLength(2)
     expect(r.points[0].cm).toBe(150)
     expect(r.points[1].cm).toBe(160)
-    expect(r.thresholdsCm).toEqual({ siaga1: 3500, siaga2: 2500, siaga3: 1500 })
+    expect(r.thresholdsCm).toEqual({ siaga1: 350, siaga2: 250, siaga3: 150 })
   })
 
   it('handles empty body without throwing', () => {

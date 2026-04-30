@@ -111,7 +111,9 @@ function parsePoint(s: string): HistoryPoint | null {
 function parseThresholds(s: string): ThresholdsCm | null {
   const parts = s.split(';').map((p) => p.trim()).filter(Boolean).map(Number)
   if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) return null
-  return { siaga1: parts[0], siaga2: parts[1], siaga3: parts[2] }
+  // Upstream sends thresholds in mm even though data points are in cm —
+  // their own DataTinggiAir.js divides by 10 to plot. Mirror that here.
+  return { siaga1: parts[0] / 10, siaga2: parts[1] / 10, siaga3: parts[2] / 10 }
 }
 
 export function parseHistoryBody(body: string): HistoryResponse {
