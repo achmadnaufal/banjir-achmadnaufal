@@ -1,0 +1,16 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+.DS_Store
+*.log
+
+# editors
+.vscode/
+.idea/
+
+# env
+.env
+.env.local
+.env.*.local
+.dev.vars
