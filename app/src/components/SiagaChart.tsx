@@ -126,7 +126,7 @@ export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
   return (
     <div className="aspect-[4/3] w-full rounded-2xl bg-white p-2 shadow-sm sm:aspect-[16/9] dark:bg-zinc-900">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={series} margin={{ top: 16, right: 24, bottom: 8, left: 8 }}>
+        <LineChart data={series} margin={{ top: 16, right: 64, bottom: 8, left: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={t.grid} strokeOpacity={0.5} />
           <XAxis
             dataKey="t"
