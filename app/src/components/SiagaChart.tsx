@@ -135,7 +135,7 @@ export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
   return (
     <div className="aspect-[4/3] w-full rounded-2xl bg-white p-2 shadow-sm sm:aspect-[16/9] dark:bg-zinc-900">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={series} margin={{ top: 16, right: 64, bottom: 8, left: 8 }}>
+        <LineChart data={series} margin={{ top: 16, right: 12, bottom: 8, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={t.grid} strokeOpacity={0.5} />
           <XAxis
             dataKey="t"
@@ -152,15 +152,30 @@ export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
             stroke={t.axis}
             tick={{ fill: t.axis, fontSize: 11 }}
             tickFormatter={(v) => `${v}`}
-            label={{ value: 'cm', angle: -90, position: 'insideLeft', fontSize: 11, fill: t.axis }}
+            width={32}
           />
           <ReferenceArea y1={yMin} y2={thresholds.siaga3} fill={t.bandNormal} fillOpacity={0.12} />
           <ReferenceArea y1={thresholds.siaga3} y2={thresholds.siaga2} fill={t.bandSiaga3} fillOpacity={0.18} />
           <ReferenceArea y1={thresholds.siaga2} y2={thresholds.siaga1} fill={t.bandSiaga2} fillOpacity={0.18} />
           <ReferenceArea y1={thresholds.siaga1} y2={yMax} fill={t.bandSiaga1} fillOpacity={0.18} />
-          <ReferenceLine y={thresholds.siaga3} stroke={t.lineSiaga3} strokeDasharray="4 4" label={{ value: 'siaga 3', position: 'right', fontSize: 10, fill: t.lineSiaga3 }} />
-          <ReferenceLine y={thresholds.siaga2} stroke={t.lineSiaga2} strokeDasharray="4 4" label={{ value: 'siaga 2', position: 'right', fontSize: 10, fill: t.lineSiaga2 }} />
-          <ReferenceLine y={thresholds.siaga1} stroke={t.lineSiaga1} strokeDasharray="4 4" label={{ value: 'siaga 1', position: 'right', fontSize: 10, fill: t.lineSiaga1 }} />
+          <ReferenceLine
+            y={thresholds.siaga3}
+            stroke={t.lineSiaga3}
+            strokeDasharray="4 4"
+            label={{ value: 'siaga 3', position: 'insideTopRight', fontSize: 10, fill: t.lineSiaga3, dy: -2 }}
+          />
+          <ReferenceLine
+            y={thresholds.siaga2}
+            stroke={t.lineSiaga2}
+            strokeDasharray="4 4"
+            label={{ value: 'siaga 2', position: 'insideTopRight', fontSize: 10, fill: t.lineSiaga2, dy: -2 }}
+          />
+          <ReferenceLine
+            y={thresholds.siaga1}
+            stroke={t.lineSiaga1}
+            strokeDasharray="4 4"
+            label={{ value: 'siaga 1', position: 'insideTopRight', fontSize: 10, fill: t.lineSiaga1, dy: -2 }}
+          />
           <Tooltip
             contentStyle={{ background: t.tooltipBg, border: 'none', color: t.tooltipText, fontSize: 12, borderRadius: 8 }}
             labelStyle={{ color: t.tooltipText }}
