@@ -94,15 +94,17 @@ export function StatsCard({ history, snapshot, now }: Props) {
           value={`${Math.round(peak.cm)} cm`}
           meta={
             <>
-              {formatStamp(peak.at)} · {timeSince(peak.at, now)}
+              <span className="block">
+                {formatStamp(peak.at)} · {timeSince(peak.at, now)}
+              </span>
               {peakBelow && (
-                <span className="ml-1 text-emerald-600 dark:text-emerald-400">
-                  · now {Math.round(peakDelta)} cm below
+                <span className="block text-emerald-600 dark:text-emerald-400">
+                  now {Math.round(peakDelta)} cm below
                 </span>
               )}
               {peakAbove && (
-                <span className="ml-1 text-red-600 dark:text-red-400">
-                  · now {Math.abs(Math.round(peakDelta))} cm above
+                <span className="block text-red-600 dark:text-red-400">
+                  now {Math.abs(Math.round(peakDelta))} cm above
                 </span>
               )}
             </>
