@@ -4,13 +4,14 @@ import {
   Line,
   LineChart,
   ReferenceArea,
+  ReferenceDot,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
-import { ANOMALY_FLOOR_CM } from '../lib/analytics'
+import { ANOMALY_FLOOR_CM, peakInWindow } from '../lib/analytics'
 import type { ResolvedTheme } from '../hooks/useTheme'
 import type { HistoryResponse, ThresholdsCm } from '../types/upstream'
 
@@ -59,7 +60,9 @@ type Theme = {
   lineSiaga1: string
 }
 
-const LIGHT: Theme = {
+type ThemeWithPeak = Theme & { peakDot: string; peakRing: string }
+
+const LIGHT: ThemeWithPeak = {
   axis: '#71717a',
   grid: '#e4e4e7',
   line: '#0f172a',
@@ -72,9 +75,11 @@ const LIGHT: Theme = {
   lineSiaga3: '#ca8a04',
   lineSiaga2: '#ea580c',
   lineSiaga1: '#dc2626',
+  peakDot: '#dc2626',
+  peakRing: '#ffffff',
 }
 
-const DARK: Theme = {
+const DARK: ThemeWithPeak = {
   axis: '#a1a1aa',
   grid: '#3f3f46',
   line: '#e2e8f0',
@@ -87,16 +92,23 @@ const DARK: Theme = {
   lineSiaga3: '#facc15',
   lineSiaga2: '#fb923c',
   lineSiaga1: '#f87171',
+  peakDot: '#f87171',
+  peakRing: '#18181b',
 }
 
 export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
   const t = theme === 'dark' ? DARK : LIGHT
   const thresholds = data.thresholdsCm ?? fallbackThresholdsCm
 
-  const { series, droppedAnomalies } = useMemo(() => {
+  const { series, droppedAnomalies, peak } = useMemo(() => {
     const raw = data.points.map((p) => ({ t: p.at.getTime(), cm: p.cm }))
     const filtered = raw.filter((p) => p.cm >= ANOMALY_FLOOR_CM)
-    return { series: filtered, droppedAnomalies: raw.length - filtered.length }
+    const peakPoint = peakInWindow(data.points.filter((p) => p.cm >= ANOMALY_FLOOR_CM))
+    return {
+      series: filtered,
+      droppedAnomalies: raw.length - filtered.length,
+      peak: peakPoint,
+    }
   }, [data.points])
 
   if (series.length === 0) {
@@ -157,6 +169,24 @@ export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
             formatter={(value) => [`${Number(value)} cm`, 'Level'] as [string, string]}
           />
           <Line type="monotone" dataKey="cm" stroke={t.line} strokeWidth={1.75} dot={false} isAnimationActive={false} />
+          {peak && (
+            <ReferenceDot
+              x={peak.at.getTime()}
+              y={peak.cm}
+              r={5}
+              fill={t.peakDot}
+              stroke={t.peakRing}
+              strokeWidth={2}
+              ifOverflow="extendDomain"
+              label={{
+                value: `peak ${Math.round(peak.cm)}`,
+                position: 'top',
+                fontSize: 10,
+                fill: t.peakDot,
+                offset: 8,
+              }}
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
       {droppedAnomalies > 0 && (

@@ -28,7 +28,7 @@ function App() {
   const now = useNow(30_000)
   const theme = useTheme()
   const latest = useLatest()
-  const [range, setRange] = useState<Range>('6h')
+  const [range, setRange] = useState<Range>('24h')
   const history = useHistory(range)
 
   const currentLevel =
