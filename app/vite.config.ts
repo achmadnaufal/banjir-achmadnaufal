@@ -29,10 +29,13 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,ico,woff2}'],
         runtimeCaching: [
           {
+            // Always try network first so a fresh poll sees fresh data;
+            // fall back to cache only when offline so the PWA still boots.
             urlPattern: SNAPSHOT_PATTERN,
-            handler: 'StaleWhileRevalidate',
+            handler: 'NetworkFirst',
             options: {
-              cacheName: 'upstream-xml',
+              cacheName: 'upstream-xml-v2',
+              networkTimeoutSeconds: 6,
               expiration: { maxEntries: 4, maxAgeSeconds: 3600 },
             },
           },

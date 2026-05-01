@@ -15,7 +15,7 @@ export async function fetchText(url: string, opts: FetchOptions = {}): Promise<s
     else opts.signal.addEventListener('abort', () => controller.abort(), { once: true })
   }
   try {
-    const res = await fetch(url, { signal: controller.signal })
+    const res = await fetch(url, { signal: controller.signal, cache: 'no-cache' })
     if (!res.ok) {
       throw new UpstreamError('http', `HTTP ${res.status} from ${url}`, res.status)
     }
