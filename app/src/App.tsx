@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PESANGGRAHAN, STALE_AFTER_MS } from './config/station'
 import { useLatest } from './hooks/useLatest'
 import { useHistory, type Range } from './hooks/useHistory'
 import { useTheme } from './hooks/useTheme'
 import { useTransitionAlert } from './hooks/useTransitionAlert'
+import { freshestSnapshot } from './lib/analytics'
 import { classify } from './lib/siaga'
 import { AlertOptIn } from './components/AlertOptIn'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -31,9 +32,16 @@ function App() {
   const history = useHistory(range)
   const stats = useHistory('24h')
 
+  const displaySnapshot = useMemo(
+    () => (latest.data ? freshestSnapshot(latest.data, stats.data) : null),
+    [latest.data, stats.data],
+  )
+
   const currentLevel =
-    latest.data === null ? null : classify(latest.data.levelCm, latest.data.thresholdsCm)
-  const currentCm = latest.data?.levelCm ?? null
+    displaySnapshot === null
+      ? null
+      : classify(displaySnapshot.levelCm, displaySnapshot.thresholdsCm)
+  const currentCm = displaySnapshot?.levelCm ?? null
 
   const alert = useTransitionAlert(currentLevel, currentCm)
 
@@ -55,10 +63,10 @@ function App() {
           <ThemeToggle preference={theme.preference} onCycle={theme.cycle} />
         </header>
 
-        {latest.data ? (
+        {displaySnapshot ? (
           <StatusCard
-            snapshot={latest.data}
-            isStale={now.getTime() - latest.data.observedAt.getTime() > STALE_AFTER_MS}
+            snapshot={displaySnapshot}
+            isStale={now.getTime() - displaySnapshot.observedAt.getTime() > STALE_AFTER_MS}
             now={now}
             stats={stats.data}
           />

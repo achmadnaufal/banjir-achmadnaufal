@@ -1,4 +1,4 @@
-import type { HistoryPoint, ThresholdsCm } from '../types/upstream'
+import type { HistoryPoint, HistoryResponse, SnapshotRow, ThresholdsCm } from '../types/upstream'
 import { classify, RANK, type SiagaLevel } from './siaga'
 
 export const ANOMALY_FLOOR_CM = -10
@@ -11,6 +11,34 @@ export type WindowExtreme = { cm: number; at: Date }
 
 export function dropAnomalies(points: readonly HistoryPoint[]): HistoryPoint[] {
   return points.filter((p) => p.cm >= ANOMALY_FLOOR_CM)
+}
+
+/**
+ * Returns the snapshot enriched with the freshest reading available across
+ * both upstream sources. The XML snapshot and the history endpoint update
+ * independently, and either may lag the other by a poll cycle. If history
+ * has a non-anomaly point newer than the snapshot's observedAt, swap in
+ * that level / timestamp and derive prevLevelCm from the second-to-last
+ * valid history point (falling back to the snapshot's own level).
+ */
+export function freshestSnapshot(
+  snapshot: SnapshotRow,
+  history: HistoryResponse | null,
+): SnapshotRow {
+  if (!history) return snapshot
+  const valid = dropAnomalies(history.points)
+  if (valid.length === 0) return snapshot
+
+  const last = valid[valid.length - 1]
+  if (last.at.getTime() <= snapshot.observedAt.getTime()) return snapshot
+
+  const prevPoint = valid.length >= 2 ? valid[valid.length - 2] : null
+  return {
+    ...snapshot,
+    observedAt: last.at,
+    levelCm: last.cm,
+    prevLevelCm: prevPoint?.cm ?? snapshot.levelCm,
+  }
 }
 
 export function peakInWindow(points: readonly HistoryPoint[]): WindowExtreme | null {

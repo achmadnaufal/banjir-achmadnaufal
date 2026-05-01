@@ -3,11 +3,12 @@ import {
   bandTenure,
   dropAnomalies,
   etaToNextBand,
+  freshestSnapshot,
   peakInWindow,
   troughInWindow,
   velocityCmPerHour,
 } from './analytics'
-import type { HistoryPoint, ThresholdsCm } from '../types/upstream'
+import type { HistoryPoint, HistoryResponse, SnapshotRow, ThresholdsCm } from '../types/upstream'
 
 const T: ThresholdsCm = { siaga1: 350, siaga2: 250, siaga3: 150 }
 
@@ -136,6 +137,81 @@ describe('bandTenure', () => {
     expect(r.level).toBe('siaga2')
     expect(r.sinceMs).toBe(0)
     expect(r.isWindowFloor).toBe(true)
+  })
+})
+
+describe('freshestSnapshot', () => {
+  const baseSnapshot: SnapshotRow = {
+    id: 160,
+    name: 'P.S. Pesanggrahan 1',
+    location: 'Pesanggrahan',
+    lat: -6.397147,
+    lng: 106.771833,
+    thresholdsCm: T,
+    observedAt: new Date('2026-04-30T10:00:00Z'),
+    levelCm: 200,
+    prevLevelCm: 195,
+    statusText: 'Status : Siaga 3',
+  }
+
+  const history = (points: HistoryPoint[]): HistoryResponse => ({ points, thresholdsCm: T })
+
+  it('returns the snapshot unchanged when history is null', () => {
+    expect(freshestSnapshot(baseSnapshot, null)).toBe(baseSnapshot)
+  })
+
+  it('returns the snapshot unchanged when history is empty', () => {
+    expect(freshestSnapshot(baseSnapshot, history([]))).toBe(baseSnapshot)
+  })
+
+  it('returns the snapshot unchanged when history is older', () => {
+    const r = freshestSnapshot(baseSnapshot, history([pt('2026-04-30T09:30:00Z', 198)]))
+    expect(r).toBe(baseSnapshot)
+  })
+
+  it('uses history when its last point is newer', () => {
+    const r = freshestSnapshot(
+      baseSnapshot,
+      history([pt('2026-04-30T10:00:00Z', 200), pt('2026-04-30T10:10:00Z', 210)]),
+    )
+    expect(r.levelCm).toBe(210)
+    expect(r.observedAt.toISOString()).toBe('2026-04-30T10:10:00.000Z')
+    expect(r.prevLevelCm).toBe(200)
+  })
+
+  it('falls back to the snapshot level for prev when history has only one fresh point', () => {
+    const r = freshestSnapshot(baseSnapshot, history([pt('2026-04-30T10:10:00Z', 210)]))
+    expect(r.levelCm).toBe(210)
+    expect(r.prevLevelCm).toBe(200) // snapshot.levelCm
+  })
+
+  it('skips trailing anomalies when picking the freshest point', () => {
+    const r = freshestSnapshot(
+      baseSnapshot,
+      history([
+        pt('2026-04-30T10:00:00Z', 200),
+        pt('2026-04-30T10:10:00Z', 210),
+        pt('2026-04-30T10:20:00Z', -515),
+      ]),
+    )
+    expect(r.levelCm).toBe(210)
+    expect(r.observedAt.toISOString()).toBe('2026-04-30T10:10:00.000Z')
+  })
+
+  it('returns the snapshot when all history points are anomalies', () => {
+    const r = freshestSnapshot(
+      baseSnapshot,
+      history([pt('2026-04-30T11:00:00Z', -515)]),
+    )
+    expect(r).toBe(baseSnapshot)
+  })
+
+  it('keeps the original thresholds and identifying fields', () => {
+    const r = freshestSnapshot(baseSnapshot, history([pt('2026-04-30T10:10:00Z', 210)]))
+    expect(r.thresholdsCm).toBe(baseSnapshot.thresholdsCm)
+    expect(r.id).toBe(baseSnapshot.id)
+    expect(r.statusText).toBe(baseSnapshot.statusText)
+    expect(r.lat).toBe(baseSnapshot.lat)
   })
 })
 
