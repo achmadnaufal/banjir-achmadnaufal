@@ -31,7 +31,29 @@ Verify "Always Use HTTPS" is on in the zone's SSL/TLS settings (it is, for the p
 
 ## 4. Iterate
 
-Edit, commit, push to `main`. Cloudflare auto-deploys every commit.
+Manual redeploy after a code change:
+
+```sh
+cd app
+npm run build
+wrangler pages deploy dist --project-name=banjir-achmadnaufal --branch=main
+```
+
+The Pages project is in **Direct Upload** mode (no Git provider connected),
+so pushing to `main` does NOT auto-deploy on its own. CI is wired but
+parked at `.github/workflows.example/deploy.yml` because the local `gh`
+OAuth token lacks the `workflow` scope; once you `gh auth refresh -h
+github.com -s workflow` (one interactive command), `git mv` it into
+`.github/workflows/deploy.yml` and push to enable auto-deploy.
+
+The workflow needs two repo secrets:
+
+| Secret | Value |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | API token, **Account → Cloudflare Pages → Edit**. Mint at https://dash.cloudflare.com/profile/api-tokens. |
+| `CLOUDFLARE_ACCOUNT_ID` | `3a115fbb6690986310407d37ce9c9c05` |
+
+Set via `gh secret set CLOUDFLARE_API_TOKEN` etc. or the repo Settings UI.
 
 ## Optional
 
