@@ -42,12 +42,12 @@ function App() {
       <div className="mx-auto max-w-screen-sm space-y-4 p-4">
         <header className="flex items-center justify-between border-b border-zinc-200 pb-3 dark:border-zinc-800">
           <div>
-            <h1 className="text-lg font-semibold leading-tight">
-              Monitor Banjir
+            <h1 className="leading-tight">
+              <span className="block text-lg font-semibold">Monitor Banjir</span>
+              <span className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                Cinangka Paradisa Residence
+              </span>
             </h1>
-            <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-              Cinangka Paradisa Residence
-            </p>
             <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
               data: {PESANGGRAHAN.name} · Sungai {PESANGGRAHAN.river}
             </p>

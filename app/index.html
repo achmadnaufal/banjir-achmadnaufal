@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <title>Monitor Banjir — Cinangka Paradisa Residence</title>
-    <meta name="description" content="Monitor Banjir untuk Cinangka Paradisa Residence — tinggi muka air real-time + peringatan dini berdasarkan pos pemantauan Pesanggrahan (Dinas SDA DKI Jakarta)." />
+    <meta name="description" content="Monitor Banjir Cinangka Paradisa Residence — pemantau tinggi muka air real-time dan peringatan dini banjir, mengambil data langsung dari pos pemantauan Pesanggrahan (Dinas Sumber Daya Air DKI Jakarta)." />
+    <meta name="keywords" content="Monitor Banjir, Cinangka Paradisa Residence, banjir Jakarta, banjir Pesanggrahan, tinggi muka air, peringatan dini banjir" />
     <meta name="theme-color" content="#0f172a" />
     <meta name="color-scheme" content="light dark" />
     <meta name="author" content="Achmad Naufal" />
-    <link rel="canonical" href="https://banjir.achmadnaufal.com/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="googlebot" content="index, follow" />
 
+    <link rel="canonical" href="https://banjir.achmadnaufal.com/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
 
@@ -19,16 +22,75 @@
     <meta property="og:url" content="https://banjir.achmadnaufal.com/" />
     <meta property="og:site_name" content="Monitor Banjir — Cinangka Paradisa Residence" />
     <meta property="og:title" content="Monitor Banjir — Cinangka Paradisa Residence" />
-    <meta property="og:description" content="Tinggi muka air real-time + peringatan dini berdasarkan pos pemantauan Pesanggrahan." />
+    <meta property="og:description" content="Pemantau tinggi muka air real-time dan peringatan dini banjir untuk Cinangka Paradisa Residence." />
     <meta property="og:locale" content="id_ID" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Monitor Banjir — Cinangka Paradisa Residence" />
-    <meta name="twitter:description" content="Tinggi muka air real-time + peringatan dini dari pos Pesanggrahan." />
+    <meta name="twitter:description" content="Pemantau tinggi muka air real-time + peringatan dini dari pos Pesanggrahan." />
+
+    <!-- TODO: paste the verification token from Google Search Console once obtained -->
+    <!-- <meta name="google-site-verification" content="REPLACE_ME" /> -->
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Monitor Banjir — Cinangka Paradisa Residence",
+        "description": "Pemantau tinggi muka air real-time dan peringatan dini banjir untuk Cinangka Paradisa Residence, dengan data dari pos pemantauan Pesanggrahan (Dinas Sumber Daya Air DKI Jakarta).",
+        "url": "https://banjir.achmadnaufal.com/",
+        "inLanguage": "id-ID",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "Monitor Banjir — Cinangka Paradisa Residence",
+          "url": "https://banjir.achmadnaufal.com/"
+        },
+        "about": {
+          "@type": "Place",
+          "name": "Cinangka Paradisa Residence",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Cinangka",
+            "addressRegion": "Banten",
+            "addressCountry": "ID"
+          }
+        },
+        "isAccessibleForFree": true,
+        "author": {
+          "@type": "Person",
+          "name": "Achmad Naufal",
+          "url": "https://achmadnaufal.com/"
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+
+    <noscript>
+      <header>
+        <h1>Monitor Banjir — Cinangka Paradisa Residence</h1>
+        <p>
+          Pemantau tinggi muka air real-time dan peringatan dini banjir untuk
+          warga Cinangka Paradisa Residence, mengambil data setiap ~10 menit
+          dari pos pemantauan Pesanggrahan (P.S. Pesanggrahan 1) milik Dinas
+          Sumber Daya Air DKI Jakarta.
+        </p>
+        <p>
+          Halaman ini menampilkan tinggi muka air saat ini, status siaga
+          (Siaga 1, 2, 3, atau Normal), grafik tren 6 jam hingga 7 hari,
+          analitik puncak dan kecepatan perubahan, serta peringatan dini di
+          peramban saat level naik melewati ambang siaga.
+        </p>
+        <p>
+          <strong>Aktifkan JavaScript</strong> untuk melihat grafik dan
+          peringatan dini secara langsung. Sumber data:
+          <a href="https://poskobanjir.dsdadki.web.id">poskobanjir.dsdadki.web.id</a>.
+        </p>
+      </header>
+    </noscript>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
