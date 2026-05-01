@@ -11,6 +11,7 @@ import { Footer } from './components/Footer'
 import { Map } from './components/Map'
 import { RangeToggle } from './components/RangeToggle'
 import { SiagaChart } from './components/SiagaChart'
+import { StatsCard } from './components/StatsCard'
 import { StatusCard } from './components/StatusCard'
 import { ThemeToggle } from './components/ThemeToggle'
 
@@ -83,6 +84,14 @@ function App() {
             <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Trend</h2>
             <RangeToggle value={range} onChange={setRange} />
           </div>
+          {history.data && latest.data && (
+            <StatsCard
+              history={history.data}
+              snapshot={latest.data}
+              range={range}
+              now={now}
+            />
+          )}
           {history.data ? (
             <SiagaChart
               data={history.data}

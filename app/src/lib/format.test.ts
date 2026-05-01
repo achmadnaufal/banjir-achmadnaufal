@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatDuration,
   formatLevel,
   formatStamp,
   mmToCm,
@@ -57,6 +58,29 @@ describe('formatStamp', () => {
   it('renders Jakarta-time stamps with WIB suffix', () => {
     const d = new Date('2026-04-30T14:32:00+07:00')
     expect(formatStamp(d)).toMatch(/30 Apr 2026, 14:32 WIB/)
+  })
+})
+
+describe('formatDuration', () => {
+  it('renders "0 min" for very small or negative durations', () => {
+    expect(formatDuration(0)).toBe('0 min')
+    expect(formatDuration(-10_000)).toBe('0 min')
+  })
+  it('renders minutes only under one hour', () => {
+    expect(formatDuration(45 * 60_000)).toBe('45 min')
+  })
+  it('renders Hh Mm under one day', () => {
+    expect(formatDuration(80 * 60_000)).toBe('1h 20m')
+    expect(formatDuration(3 * 3600_000)).toBe('3h 0m')
+  })
+  it('renders days for spans >= 24h', () => {
+    expect(formatDuration(2 * 86_400_000)).toBe('2 d')
+    expect(formatDuration(2.5 * 86_400_000)).toBe('2 d')
+  })
+  it('compact mode strips spaces', () => {
+    expect(formatDuration(80 * 60_000, { compact: true })).toBe('1h20m')
+    expect(formatDuration(45 * 60_000, { compact: true })).toBe('45m')
+    expect(formatDuration(86_400_000, { compact: true })).toBe('1d')
   })
 })
 

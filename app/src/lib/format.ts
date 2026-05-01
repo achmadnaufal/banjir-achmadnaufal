@@ -47,3 +47,21 @@ export function trendArrow(t: Trend): '▲' | '▼' | '■' {
   if (t === 'down') return '▼'
   return '■'
 }
+
+export type DurationOpts = { compact?: boolean }
+
+export function formatDuration(ms: number, opts: DurationOpts = {}): string {
+  const compact = opts.compact === true
+  if (ms <= 0) return compact ? '0m' : '0 min'
+  const totalMin = Math.floor(ms / 60_000)
+  if (totalMin >= 60 * 24) {
+    const days = Math.floor(totalMin / (60 * 24))
+    return compact ? `${days}d` : `${days} d`
+  }
+  if (totalMin >= 60) {
+    const h = Math.floor(totalMin / 60)
+    const m = totalMin % 60
+    return compact ? `${h}h${m}m` : `${h}h ${m}m`
+  }
+  return compact ? `${totalMin}m` : `${totalMin} min`
+}

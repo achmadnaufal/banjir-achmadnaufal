@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { ANOMALY_FLOOR_CM } from '../lib/analytics'
 import type { ResolvedTheme } from '../hooks/useTheme'
 import type { HistoryResponse, ThresholdsCm } from '../types/upstream'
 
@@ -41,10 +42,6 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('en-GB', {
   hour12: false,
 })
 
-// Pesanggrahan sensor occasionally returns large negative values when the
-// gauge is offline or being recalibrated (e.g. -515 cm). Anything below
-// this floor is treated as a sensor anomaly and excluded from the chart.
-const ANOMALY_FLOOR_CM = -10
 const MULTI_DAY_THRESHOLD_MS = 36 * 60 * 60 * 1000
 
 type Theme = {
