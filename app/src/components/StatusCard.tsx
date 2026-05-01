@@ -1,12 +1,14 @@
 import { formatLevel, formatStamp, timeSince, trendArrow } from '../lib/format'
 import { classify, trend, type Trend } from '../lib/siaga'
-import type { SnapshotRow } from '../types/upstream'
+import type { HistoryResponse, SnapshotRow } from '../types/upstream'
 import { SiagaBadge } from './SiagaBadge'
+import { StatsCard } from './StatsCard'
 
 type Props = {
   snapshot: SnapshotRow
   isStale: boolean
   now: Date
+  stats?: HistoryResponse | null
 }
 
 const TREND_CLASS: Record<Trend, string> = {
@@ -21,7 +23,7 @@ const TREND_LABEL: Record<Trend, string> = {
   flat: 'flat',
 }
 
-export function StatusCard({ snapshot, isStale, now }: Props) {
+export function StatusCard({ snapshot, isStale, now, stats }: Props) {
   const level = classify(snapshot.levelCm, snapshot.thresholdsCm)
   const direction = trend(snapshot.prevLevelCm, snapshot.levelCm)
   const arrow = trendArrow(direction)
@@ -60,6 +62,12 @@ export function StatusCard({ snapshot, isStale, now }: Props) {
       <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
         observed {formatStamp(snapshot.observedAt)} · {timeSince(snapshot.observedAt, now)}
       </p>
+      {stats && (
+        <>
+          <div className="my-4 border-t border-zinc-100 dark:border-zinc-800" />
+          <StatsCard history={stats} snapshot={snapshot} now={now} />
+        </>
+      )}
     </section>
   )
 }

@@ -11,7 +11,6 @@ import { Footer } from './components/Footer'
 import { Map } from './components/Map'
 import { RangeToggle } from './components/RangeToggle'
 import { SiagaChart } from './components/SiagaChart'
-import { StatsCard } from './components/StatsCard'
 import { StatusCard } from './components/StatusCard'
 import { ThemeToggle } from './components/ThemeToggle'
 
@@ -30,6 +29,7 @@ function App() {
   const latest = useLatest()
   const [range, setRange] = useState<Range>('24h')
   const history = useHistory(range)
+  const stats = useHistory('24h')
 
   const currentLevel =
     latest.data === null ? null : classify(latest.data.levelCm, latest.data.thresholdsCm)
@@ -60,6 +60,7 @@ function App() {
             snapshot={latest.data}
             isStale={now.getTime() - latest.data.observedAt.getTime() > STALE_AFTER_MS}
             now={now}
+            stats={stats.data}
           />
         ) : latest.error ? (
           <section className="rounded-2xl bg-red-50 p-6 text-sm text-red-900 dark:bg-red-950 dark:text-red-100">
@@ -84,14 +85,6 @@ function App() {
             <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Trend</h2>
             <RangeToggle value={range} onChange={setRange} />
           </div>
-          {history.data && latest.data && (
-            <StatsCard
-              history={history.data}
-              snapshot={latest.data}
-              range={range}
-              now={now}
-            />
-          )}
           {history.data ? (
             <SiagaChart
               data={history.data}
