@@ -110,7 +110,7 @@ function App() {
           onTest={alert.testChime}
         />
 
-        <Footer lastFetchedAt={latest.lastFetchedAt} now={now} />
+        <Footer lastFetchedAt={latest.lastFetchedAt} />
       </div>
     </ErrorBoundary>
   )

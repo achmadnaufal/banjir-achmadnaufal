@@ -1,11 +1,15 @@
-import { timeSince } from '../lib/format'
-
 type Props = {
   lastFetchedAt: Date | null
-  now: Date
 }
 
-export function Footer({ lastFetchedAt, now }: Props) {
+const POLL_TIME_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Jakarta',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+})
+
+export function Footer({ lastFetchedAt }: Props) {
   return (
     <footer className="space-y-1 px-2 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
       <p>
@@ -21,7 +25,7 @@ export function Footer({ lastFetchedAt, now }: Props) {
       </p>
       <p>
         {lastFetchedAt
-          ? `Page data fetched ${timeSince(lastFetchedAt, now)}`
+          ? `Last poll ${POLL_TIME_FORMATTER.format(lastFetchedAt)} WIB`
           : 'Fetching latest data…'}
       </p>
       <p>Alerts only fire while this page is open.</p>
