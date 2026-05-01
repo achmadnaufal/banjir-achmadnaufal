@@ -66,10 +66,10 @@ export function StatsCard({ history, snapshot, now }: Props) {
     () => bandTenure(cleanPoints, thresholds, snapshot.levelCm),
     [cleanPoints, thresholds, snapshot.levelCm],
   )
-  const eta = useMemo(() => {
-    if (velocity === null) return null
-    return etaToNextBand(snapshot.levelCm, velocity, thresholds)
-  }, [velocity, snapshot.levelCm, thresholds])
+  const eta = useMemo(
+    () => etaToNextBand(snapshot.levelCm, cleanPoints, now, thresholds),
+    [snapshot.levelCm, cleanPoints, now, thresholds],
+  )
 
   if (cleanPoints.length < 2) {
     return (

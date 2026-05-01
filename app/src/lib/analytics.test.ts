@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   bandTenure,
   dropAnomalies,
+  etaLinear,
   etaToNextBand,
   freshestSnapshot,
   peakInWindow,
+  quadraticFit,
   troughInWindow,
   velocityCmPerHour,
 } from './analytics'
@@ -215,40 +217,163 @@ describe('freshestSnapshot', () => {
   })
 })
 
-describe('etaToNextBand', () => {
+describe('etaLinear', () => {
   it('rising into siaga2 from siaga3', () => {
-    const r = etaToNextBand(240, 60, T)
+    const r = etaLinear(240, 60, T)
     expect(r).not.toBeNull()
     expect(r?.targetLevel).toBe('siaga2')
     expect(r?.direction).toBe('rising')
-    // (250 - 240) / 60 cm/h = 1/6 h = 10 min
     expect(r?.etaMs).toBeCloseTo(10 * 60_000, -3)
   })
 
   it('falling into siaga3 from siaga2', () => {
-    const r = etaToNextBand(280, -12, T)
-    expect(r).not.toBeNull()
+    const r = etaLinear(280, -12, T)
     expect(r?.targetLevel).toBe('siaga3')
-    expect(r?.direction).toBe('falling')
-    // (280 - 250) / 12 cm/h = 2.5 h
     expect(r?.etaMs).toBeCloseTo(2.5 * 3600_000, -4)
   })
 
-  it('returns null when velocity is below MIN_VELOCITY_FOR_ETA', () => {
-    expect(etaToNextBand(240, 0.4, T)).toBeNull()
-    expect(etaToNextBand(240, -0.2, T)).toBeNull()
+  it('returns null below MIN_VELOCITY_FOR_ETA', () => {
+    expect(etaLinear(240, 0.4, T)).toBeNull()
   })
 
-  it('returns null when already at the top band rising', () => {
-    expect(etaToNextBand(400, 5, T)).toBeNull()
+  it('returns null at top band rising', () => {
+    expect(etaLinear(400, 5, T)).toBeNull()
   })
 
-  it('returns null when already at normal falling', () => {
-    expect(etaToNextBand(50, -5, T)).toBeNull()
+  it('returns null beyond horizon', () => {
+    expect(etaLinear(240, 0.5, T, 12 * 3600_000)).toBeNull()
+  })
+})
+
+describe('quadraticFit', () => {
+  it('recovers a, b, c from clean polynomial samples', () => {
+    // y = 100 + 5t + 2t²
+    const ts = [0, 0.5, 1, 1.5, 2]
+    const ys = ts.map((t) => 100 + 5 * t + 2 * t * t)
+    const fit = quadraticFit(ts, ys)!
+    expect(fit.a).toBeCloseTo(100, 5)
+    expect(fit.b).toBeCloseTo(5, 5)
+    expect(fit.c).toBeCloseTo(2, 5)
   })
 
-  it('returns null when crossing is beyond the horizon', () => {
-    // 240 cm rising at 0.5 cm/h ≈ 20 h to reach siaga2
-    expect(etaToNextBand(240, 0.5, T, 12 * 3600_000)).toBeNull()
+  it('returns null with fewer than 3 points', () => {
+    expect(quadraticFit([0, 1], [10, 20])).toBeNull()
+  })
+
+  it('returns null when ts and ys lengths mismatch', () => {
+    expect(quadraticFit([0, 1, 2], [10, 20])).toBeNull()
+  })
+})
+
+describe('etaToNextBand (quadratic)', () => {
+  // 6 points spanning 60 min, +1 cm per 10 min, currently at 240 cm.
+  // Constant rate: linear and quadratic should agree.
+  const constantRise: HistoryPoint[] = [
+    pt('2026-04-30T10:00:00Z', 235),
+    pt('2026-04-30T10:10:00Z', 236),
+    pt('2026-04-30T10:20:00Z', 237),
+    pt('2026-04-30T10:30:00Z', 238),
+    pt('2026-04-30T10:40:00Z', 239),
+    pt('2026-04-30T10:50:00Z', 240),
+  ]
+  const now = new Date('2026-04-30T10:50:00Z')
+
+  it('matches linear when the trajectory is constant-rate rising', () => {
+    const r = etaToNextBand(240, constantRise, now, T)
+    expect(r).not.toBeNull()
+    const result = r!
+    expect(result.targetLevel).toBe('siaga2')
+    expect(result.direction).toBe('rising')
+    // Rate ≈ 6 cm/h, distance to 250 = 10 cm → ~100 min
+    const minutes = result.etaMs / 60_000
+    expect(minutes).toBeGreaterThan(80)
+    expect(minutes).toBeLessThan(120)
+  })
+
+  it('returns null when the parabola crests below the threshold and stays inside the band', () => {
+    // Gently decelerating wave that peaks ~241 then settles around 240,
+    // never crossing into siaga2 (250) or back into normal (150) within horizon.
+    const cresting: HistoryPoint[] = [
+      pt('2026-04-30T10:00:00Z', 238),
+      pt('2026-04-30T10:10:00Z', 239),
+      pt('2026-04-30T10:20:00Z', 240),
+      pt('2026-04-30T10:30:00Z', 240.5),
+      pt('2026-04-30T10:40:00Z', 240.8),
+      pt('2026-04-30T10:50:00Z', 241),
+    ]
+    const r = etaToNextBand(241, cresting, now, T, { horizonMs: 30 * 60_000 })
+    // Within a 30-min horizon the trajectory stays in siaga3.
+    expect(r).toBeNull()
+  })
+
+  it('returns a tighter ETA than linear when the wave is accelerating', () => {
+    // Accelerating rise to siaga2 boundary
+    const accelerating: HistoryPoint[] = [
+      pt('2026-04-30T10:00:00Z', 230),
+      pt('2026-04-30T10:10:00Z', 231),
+      pt('2026-04-30T10:20:00Z', 233),
+      pt('2026-04-30T10:30:00Z', 236),
+      pt('2026-04-30T10:40:00Z', 240),
+      pt('2026-04-30T10:50:00Z', 245),
+    ]
+    const r = etaToNextBand(245, accelerating, now, T)
+    expect(r).not.toBeNull()
+    const result = r!
+    expect(result.targetLevel).toBe('siaga2')
+    // Accelerating projection should hit siaga2 quickly — well under 15 min.
+    expect(result.etaMs / 60_000).toBeLessThanOrEqual(15)
+  })
+
+  it('falls back to linear when fewer than 4 valid samples', () => {
+    const sparse: HistoryPoint[] = [
+      pt('2026-04-30T10:30:00Z', 240),
+      pt('2026-04-30T10:50:00Z', 245),
+    ]
+    const r = etaToNextBand(245, sparse, now, T)
+    // 2 points → falls back to linear. Rate ≈ +15 cm/h, distance to 250 = 5 cm.
+    expect(r).not.toBeNull()
+    const result = r!
+    expect(result.targetLevel).toBe('siaga2')
+  })
+
+  it('returns null at the top band rising', () => {
+    const all: HistoryPoint[] = [
+      pt('2026-04-30T10:00:00Z', 395),
+      pt('2026-04-30T10:10:00Z', 397),
+      pt('2026-04-30T10:20:00Z', 399),
+      pt('2026-04-30T10:30:00Z', 401),
+      pt('2026-04-30T10:40:00Z', 403),
+      pt('2026-04-30T10:50:00Z', 405),
+    ]
+    expect(etaToNextBand(405, all, now, T)).toBeNull()
+  })
+
+  it('returns null beyond the horizon', () => {
+    // Very slow rise: ~0.5 cm/h, at 240 cm — would take 20h to reach siaga2
+    const slow: HistoryPoint[] = [
+      pt('2026-04-30T10:00:00Z', 239.5),
+      pt('2026-04-30T10:12:00Z', 239.6),
+      pt('2026-04-30T10:24:00Z', 239.7),
+      pt('2026-04-30T10:36:00Z', 239.8),
+      pt('2026-04-30T10:48:00Z', 239.9),
+      pt('2026-04-30T10:50:00Z', 240),
+    ]
+    expect(etaToNextBand(240, slow, now, T, { horizonMs: 12 * 3600_000 })).toBeNull()
+  })
+
+  it('detects a falling crossing into the lower band', () => {
+    // Smooth fall from 280 to 260 over 60 min — heading toward siaga3 (250)
+    const falling: HistoryPoint[] = [
+      pt('2026-04-30T10:00:00Z', 280),
+      pt('2026-04-30T10:10:00Z', 277),
+      pt('2026-04-30T10:20:00Z', 273),
+      pt('2026-04-30T10:30:00Z', 268),
+      pt('2026-04-30T10:40:00Z', 263),
+      pt('2026-04-30T10:50:00Z', 260),
+    ]
+    const r = etaToNextBand(260, falling, now, T)
+    expect(r).not.toBeNull()
+    expect(r?.targetLevel).toBe('siaga3')
+    expect(r?.direction).toBe('falling')
   })
 })

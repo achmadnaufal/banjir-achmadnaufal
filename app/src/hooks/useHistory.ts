@@ -3,13 +3,15 @@ import { HISTORY_REFRESH_MS, PESANGGRAHAN } from '../config/station'
 import { fetchHistory } from '../lib/upstream'
 import type { HistoryResponse } from '../types/upstream'
 
-export type Range = '6h' | '12h' | '24h' | '7d'
+export type Range = '6h' | '12h' | '24h' | '7d' | '30d' | '60d'
 
 const RANGE_HOURS: Record<Range, number> = {
   '6h': 6,
   '12h': 12,
   '24h': 24,
   '7d': 24 * 7,
+  '30d': 24 * 30,
+  '60d': 24 * 60,
 }
 
 const HOUR_MS = 60 * 60 * 1000
