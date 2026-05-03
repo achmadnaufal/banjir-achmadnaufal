@@ -11,6 +11,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { Footer } from './components/Footer'
 import { Map } from './components/Map'
 import { RangeToggle } from './components/RangeToggle'
+import { AboutSection } from './components/AboutSection'
 import { SiagaChart } from './components/SiagaChart'
 import { StatusCard } from './components/StatusCard'
 import { ThemeToggle } from './components/ThemeToggle'
@@ -117,6 +118,8 @@ function App() {
           onRequest={() => void alert.requestPermission()}
           onTest={alert.testChime}
         />
+
+        <AboutSection />
 
         <Footer lastFetchedAt={latest.lastFetchedAt} />
       </div>

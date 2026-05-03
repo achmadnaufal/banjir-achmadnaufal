@@ -6,7 +6,7 @@
 
     <title>Monitor Banjir — Cinangka Paradisa Residence</title>
     <meta name="description" content="Monitor Banjir Cinangka Paradisa Residence — pemantau tinggi muka air diperbarui tiap ~10 menit dan peringatan dini banjir, mengambil data langsung dari pos pemantauan Pesanggrahan (Dinas Sumber Daya Air DKI Jakarta)." />
-    <meta name="keywords" content="Monitor Banjir, Cinangka Paradisa Residence, banjir Jakarta, banjir Pesanggrahan, tinggi muka air, peringatan dini banjir" />
+    <meta name="keywords" content="Monitor Banjir, Cinangka Paradisa Residence, perumahan Cinangka Paradisa, banjir Cinangka, banjir Pesanggrahan, banjir Sawangan Depok, banjir Jakarta, tinggi muka air, TMA Pesanggrahan, peringatan dini banjir, Sungai Pesanggrahan, Pintu Air Pesanggrahan, P.S. Pesanggrahan 1, Siaga banjir" />
     <meta name="theme-color" content="#0f172a" />
     <meta name="color-scheme" content="light dark" />
     <meta name="author" content="Achmad Naufal" />
@@ -38,6 +38,7 @@
         "@context": "https://schema.org",
         "@type": "WebPage",
         "name": "Monitor Banjir — Cinangka Paradisa Residence",
+        "alternateName": ["Monitor Banjir Cinangka Paradisa", "Monitor Banjir Pesanggrahan Cinangka"],
         "description": "Pemantau tinggi muka air (diperbarui tiap ~10 menit) dan peringatan dini banjir untuk Cinangka Paradisa Residence, dengan data dari pos pemantauan Pesanggrahan (Dinas Sumber Daya Air DKI Jakarta).",
         "url": "https://banjir.achmadnaufal.com/",
         "inLanguage": "id-ID",
@@ -49,13 +50,13 @@
         "about": {
           "@type": "Place",
           "name": "Cinangka Paradisa Residence",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "Cinangka",
-            "addressRegion": "Banten",
-            "addressCountry": "ID"
-          }
+          "alternateName": ["Perumahan Cinangka Paradisa", "Cinangka Paradisa"]
         },
+        "mentions": [
+          { "@type": "Place", "name": "Sungai Pesanggrahan" },
+          { "@type": "Place", "name": "Pos Pemantauan Pesanggrahan", "alternateName": "P.S. Pesanggrahan 1" },
+          { "@type": "GovernmentOrganization", "name": "Dinas Sumber Daya Air DKI Jakarta" }
+        ],
         "isAccessibleForFree": true,
         "author": {
           "@type": "Person",
@@ -64,31 +65,167 @@
         }
       }
     </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Apa itu Monitor Banjir Cinangka Paradisa Residence?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Halaman pemantau tinggi muka air dan peringatan dini banjir khusus untuk warga perumahan Cinangka Paradisa Residence. Data diambil dari pos pemantauan Pesanggrahan (P.S. Pesanggrahan 1) milik Dinas Sumber Daya Air Provinsi DKI Jakarta dan diperbarui tiap ~10 menit."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Berapa cepat data diperbarui?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Pos Pesanggrahan mengirim sampel baru kira-kira tiap 10 menit. Halaman ini menjemput data tiap 5 menit, sehingga jeda terburuk antara data lapangan dan tampilan adalah sekitar 10–15 menit."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Apa arti Siaga 1, Siaga 2, Siaga 3, dan Normal?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Status Siaga di pos Pesanggrahan ditentukan oleh tinggi muka air Sungai Pesanggrahan. Normal: di bawah 150 cm. Siaga 3 (Waspada): 150–250 cm. Siaga 2 (Siaga): 250–350 cm. Siaga 1 (Awas): di atas 350 cm."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Apakah halaman ini bisa kirim peringatan saat ponsel terkunci?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Tidak. Notifikasi peramban hanya berbunyi saat tab halaman ini terbuka. Untuk akses cepat saat hujan deras atau musim banjir, pasang halaman ini di layar utama ponsel sebagai aplikasi (PWA)."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Dari mana sumber datanya?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Data tinggi muka air berasal dari laman publik poskobanjir.dsdadki.web.id milik Dinas Sumber Daya Air Provinsi DKI Jakarta. Halaman ini menampilkan ulang data tersebut dalam tampilan ramah ponsel — tanpa modifikasi nilai."
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
 
     <noscript>
-      <header>
-        <h1>Monitor Banjir — Cinangka Paradisa Residence</h1>
-        <p>
-          Pemantau tinggi muka air dan peringatan dini banjir untuk warga
-          Cinangka Paradisa Residence. Data diambil setiap ~10 menit dari
-          pos pemantauan Pesanggrahan (P.S. Pesanggrahan 1) milik Dinas
-          Sumber Daya Air DKI Jakarta — bukan streaming real-time.
-        </p>
-        <p>
-          Halaman ini menampilkan tinggi muka air saat ini, status siaga
-          (Siaga 1, 2, 3, atau Normal), grafik tren 6 jam hingga 7 hari,
-          analitik puncak dan kecepatan perubahan, serta peringatan dini di
-          peramban saat level naik melewati ambang siaga.
-        </p>
+      <article>
+        <header>
+          <h1>Monitor Banjir — Cinangka Paradisa Residence</h1>
+          <p>
+            Pemantau tinggi muka air dan peringatan dini banjir khusus
+            untuk warga perumahan <strong>Cinangka Paradisa Residence</strong>.
+            Data diambil dari pos pemantauan Pesanggrahan
+            (P.S. Pesanggrahan 1) milik Dinas Sumber Daya Air Provinsi
+            DKI Jakarta dan diperbarui setiap ~10 menit.
+          </p>
+        </header>
+
+        <section>
+          <h2>Tentang halaman ini</h2>
+          <p>
+            Halaman <em>Monitor Banjir Cinangka Paradisa Residence</em>
+            menampilkan tinggi muka air Sungai Pesanggrahan terkini,
+            status siaga banjir (Normal, Siaga 3, Siaga 2, atau Siaga 1),
+            grafik tren 6 jam hingga 60 hari, serta analitik singkat
+            seperti puncak terakhir, kecepatan perubahan, dan estimasi
+            kapan level akan menyentuh ambang siaga berikutnya.
+          </p>
+          <p>
+            Halaman ini ditujukan untuk warga Cinangka Paradisa, juga
+            bermanfaat bagi warga sekitar Pesanggrahan, Sawangan, Depok,
+            dan wilayah hilir Sungai Pesanggrahan yang ingin memantau
+            tinggi muka air dengan cepat dari ponsel.
+          </p>
+        </section>
+
+        <section>
+          <h2>Status Siaga di Pos Pesanggrahan</h2>
+          <p>
+            Empat tingkat status digunakan berdasarkan tinggi muka air:
+          </p>
+          <ul>
+            <li><strong>Normal</strong> — di bawah 150 cm. Tidak ada ancaman banjir di hilir.</li>
+            <li><strong>Siaga 3 (Waspada)</strong> — 150 hingga 250 cm. Waspadai kemungkinan kenaikan jika hujan berlanjut.</li>
+            <li><strong>Siaga 2 (Siaga)</strong> — 250 hingga 350 cm. Tingkatkan kewaspadaan; siapkan barang berharga di tempat lebih tinggi.</li>
+            <li><strong>Siaga 1 (Awas)</strong> — di atas 350 cm. Risiko banjir besar; pertimbangkan evakuasi sesuai arahan RT/RW dan BPBD.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Cara kerja peringatan dini</h2>
+          <p>
+            Saat tab halaman ini terbuka di peramban, sistem akan
+            memberikan notifikasi otomatis dan bunyi peringatan ketika
+            tinggi muka air <em>naik</em> melewati salah satu ambang
+            siaga. Untuk akses paling cepat saat hujan deras atau musim
+            banjir, pasang halaman ini di layar utama ponsel sebagai
+            aplikasi (Progressive Web App).
+          </p>
+          <p>
+            Catatan: notifikasi <strong>hanya berbunyi saat tab halaman
+            ini terbuka</strong>. Halaman ini bukan layanan push penuh —
+            tetap kombinasikan dengan informasi resmi dari BPBD setempat.
+          </p>
+        </section>
+
+        <section>
+          <h2>Sumber data</h2>
+          <p>
+            Data tinggi muka air berasal dari pos pemantauan Pesanggrahan
+            (kode stasiun 34, ID 160) milik <strong>Dinas Sumber Daya
+            Air Provinsi DKI Jakarta</strong>, dipublikasikan secara
+            terbuka di
+            <a href="https://poskobanjir.dsdadki.web.id">
+              poskobanjir.dsdadki.web.id
+            </a>.
+            Halaman ini menampilkan ulang data tersebut dalam tampilan
+            ramah ponsel tanpa mengubah nilai. Bukan streaming real-time
+            — penyegaran berkala setiap ~10 menit.
+          </p>
+        </section>
+
+        <section>
+          <h2>Pertanyaan sering diajukan</h2>
+
+          <h3>Apakah ini situs resmi pemerintah?</h3>
+          <p>
+            Bukan. Ini halaman tidak resmi yang dibangun untuk warga
+            Cinangka Paradisa Residence. Data sepenuhnya bersumber dari
+            laman publik Dinas Sumber Daya Air DKI Jakarta.
+          </p>
+
+          <h3>Mengapa pos Pesanggrahan dipilih?</h3>
+          <p>
+            Pos Pesanggrahan adalah pos pemantauan resmi terdekat dengan
+            Cinangka Paradisa Residence yang berada di hulu aliran
+            Sungai Pesanggrahan, sehingga kenaikan di pos ini menjadi
+            indikator dini banjir di wilayah hilir.
+          </p>
+
+          <h3>Apa artinya bila tinggi muka air bernilai negatif?</h3>
+          <p>
+            Nilai negatif (misalnya −500 cm) menandakan sensor pos
+            sedang offline atau kalibrasi ulang. Halaman ini otomatis
+            menyaring nilai tersebut dari grafik dan analitik.
+          </p>
+        </section>
+
         <p>
           <strong>Aktifkan JavaScript</strong> untuk melihat grafik dan
-          peringatan dini secara langsung. Sumber data:
-          <a href="https://poskobanjir.dsdadki.web.id">poskobanjir.dsdadki.web.id</a>.
+          peringatan dini secara langsung.
         </p>
-      </header>
+      </article>
     </noscript>
 
     <script type="module" src="/src/main.tsx"></script>
