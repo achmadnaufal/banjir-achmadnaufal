@@ -5,8 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <title>Monitor Banjir — Cinangka Paradisa Residence</title>
-    <meta name="description" content="Monitor Banjir Cinangka Paradisa Residence — pemantau tinggi muka air diperbarui tiap ~10 menit dan peringatan dini banjir, mengambil data langsung dari pos pemantauan Pesanggrahan (Dinas Sumber Daya Air DKI Jakarta)." />
-    <meta name="keywords" content="Monitor Banjir, Cinangka Paradisa Residence, perumahan Cinangka Paradisa, banjir Cinangka, banjir Pesanggrahan, banjir Sawangan Depok, banjir Jakarta, tinggi muka air, TMA Pesanggrahan, peringatan dini banjir, Sungai Pesanggrahan, Pintu Air Pesanggrahan, P.S. Pesanggrahan 1, Siaga banjir" />
+    <meta name="description" content="Monitor Banjir Cinangka Paradisa Residence — pemantau tinggi muka air dan peringatan dini banjir untuk warga komplek Cinangka Paradisa Residence di Kelurahan Cinangka, Kecamatan Sawangan, Kota Depok, Jawa Barat. Data dari pos pemantauan Pesanggrahan (Dinas Sumber Daya Air DKI Jakarta), diperbarui tiap ~10 menit." />
+    <meta name="keywords" content="Monitor Banjir, Cinangka Paradisa Residence, perumahan Cinangka Paradisa, perumahan Cinangka Sawangan, perumahan Sawangan Depok, banjir Cinangka, banjir Sawangan, banjir Sawangan Depok, banjir Depok, banjir Pesanggrahan, banjir Jakarta, tinggi muka air, TMA Pesanggrahan, peringatan dini banjir, Sungai Pesanggrahan, Pintu Air Pesanggrahan, P.S. Pesanggrahan 1, Siaga banjir, Cinangka Sawangan Depok" />
+
+    <!-- Geo meta -->
+    <meta name="geo.region" content="ID-JB" />
+    <meta name="geo.placename" content="Cinangka, Sawangan, Depok" />
+    <meta name="geo.position" content="-6.397147;106.771833" />
+    <meta name="ICBM" content="-6.397147, 106.771833" />
     <meta name="theme-color" content="#0f172a" />
     <meta name="color-scheme" content="light dark" />
     <meta name="author" content="Achmad Naufal" />
@@ -22,7 +28,7 @@
     <meta property="og:url" content="https://banjir.achmadnaufal.com/" />
     <meta property="og:site_name" content="Monitor Banjir — Cinangka Paradisa Residence" />
     <meta property="og:title" content="Monitor Banjir — Cinangka Paradisa Residence" />
-    <meta property="og:description" content="Pemantau tinggi muka air (diperbarui tiap ~10 menit) dan peringatan dini banjir untuk Cinangka Paradisa Residence." />
+    <meta property="og:description" content="Pemantau tinggi muka air dan peringatan dini banjir untuk Cinangka Paradisa Residence — Cinangka, Sawangan, Depok, Jawa Barat. Data dari pos Pesanggrahan, diperbarui ~10 menit." />
     <meta property="og:locale" content="id_ID" />
 
     <!-- Twitter -->
@@ -48,12 +54,35 @@
           "url": "https://banjir.achmadnaufal.com/"
         },
         "about": {
-          "@type": "Place",
+          "@type": "ApartmentComplex",
           "name": "Cinangka Paradisa Residence",
-          "alternateName": ["Perumahan Cinangka Paradisa", "Cinangka Paradisa"]
+          "alternateName": ["Perumahan Cinangka Paradisa", "Cinangka Paradisa"],
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Cinangka",
+            "addressLocality": "Sawangan",
+            "addressRegion": "Jawa Barat",
+            "addressCountry": "ID",
+            "postalCode": "16518"
+          },
+          "containedInPlace": {
+            "@type": "City",
+            "name": "Depok",
+            "containedInPlace": {
+              "@type": "AdministrativeArea",
+              "name": "Jawa Barat"
+            }
+          },
+          "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": -6.397147,
+            "longitude": 106.771833
+          }
         },
         "mentions": [
           { "@type": "Place", "name": "Sungai Pesanggrahan" },
+          { "@type": "Place", "name": "Cinangka, Sawangan" },
+          { "@type": "City", "name": "Depok" },
           { "@type": "Place", "name": "Pos Pemantauan Pesanggrahan", "alternateName": "P.S. Pesanggrahan 1" },
           { "@type": "GovernmentOrganization", "name": "Dinas Sumber Daya Air DKI Jakarta" }
         ],
@@ -76,7 +105,15 @@
             "name": "Apa itu Monitor Banjir Cinangka Paradisa Residence?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Halaman pemantau tinggi muka air dan peringatan dini banjir khusus untuk warga perumahan Cinangka Paradisa Residence. Data diambil dari pos pemantauan Pesanggrahan (P.S. Pesanggrahan 1) milik Dinas Sumber Daya Air Provinsi DKI Jakarta dan diperbarui tiap ~10 menit."
+              "text": "Halaman pemantau tinggi muka air dan peringatan dini banjir khusus untuk warga perumahan Cinangka Paradisa Residence di Kelurahan Cinangka, Kecamatan Sawangan, Kota Depok, Jawa Barat. Data diambil dari pos pemantauan Pesanggrahan (P.S. Pesanggrahan 1) milik Dinas Sumber Daya Air Provinsi DKI Jakarta dan diperbarui tiap ~10 menit."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Cinangka Paradisa Residence terletak di mana?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Cinangka Paradisa Residence adalah komplek perumahan di Kelurahan Cinangka, Kecamatan Sawangan, Kota Depok, Provinsi Jawa Barat (kode pos 16518). Lokasinya di sisi selatan Jakarta dan dilewati aliran Sungai Pesanggrahan, sehingga rentan terdampak ketika debit sungai meningkat."
             }
           },
           {
@@ -124,10 +161,12 @@
           <h1>Monitor Banjir — Cinangka Paradisa Residence</h1>
           <p>
             Pemantau tinggi muka air dan peringatan dini banjir khusus
-            untuk warga perumahan <strong>Cinangka Paradisa Residence</strong>.
-            Data diambil dari pos pemantauan Pesanggrahan
-            (P.S. Pesanggrahan 1) milik Dinas Sumber Daya Air Provinsi
-            DKI Jakarta dan diperbarui setiap ~10 menit.
+            untuk warga perumahan <strong>Cinangka Paradisa Residence</strong>,
+            sebuah komplek hunian di Kelurahan Cinangka, Kecamatan
+            Sawangan, Kota Depok, Jawa Barat. Data diambil dari pos
+            pemantauan Pesanggrahan (P.S. Pesanggrahan 1) milik Dinas
+            Sumber Daya Air Provinsi DKI Jakarta dan diperbarui setiap
+            ~10 menit.
           </p>
         </header>
 
@@ -143,9 +182,27 @@
           </p>
           <p>
             Halaman ini ditujukan untuk warga Cinangka Paradisa, juga
-            bermanfaat bagi warga sekitar Pesanggrahan, Sawangan, Depok,
-            dan wilayah hilir Sungai Pesanggrahan yang ingin memantau
-            tinggi muka air dengan cepat dari ponsel.
+            bermanfaat bagi warga sekitar Cinangka, Sawangan, dan Depok
+            secara umum, serta wilayah hilir Sungai Pesanggrahan yang
+            ingin memantau tinggi muka air dengan cepat dari ponsel.
+          </p>
+        </section>
+
+        <section>
+          <h2>Lokasi</h2>
+          <p>
+            <strong>Cinangka Paradisa Residence</strong> adalah komplek
+            perumahan yang berada di Kelurahan Cinangka, Kecamatan
+            Sawangan, Kota Depok, Provinsi Jawa Barat — di sisi selatan
+            Jakarta dan dilewati oleh aliran Sungai Pesanggrahan. Lokasi
+            ini termasuk daerah yang berpotensi terdampak ketika debit
+            Sungai Pesanggrahan meningkat akibat hujan deras di hulu
+            (kawasan Bogor dan Depok bagian selatan).
+          </p>
+          <p>
+            Pos pemantauan Pesanggrahan (P.S. Pesanggrahan 1) berada di
+            koordinat sekitar −6.397, 106.772, di Sungai Pesanggrahan
+            relatif dekat dengan kawasan Cinangka, Sawangan.
           </p>
         </section>
 
@@ -207,10 +264,19 @@
 
           <h3>Mengapa pos Pesanggrahan dipilih?</h3>
           <p>
-            Pos Pesanggrahan adalah pos pemantauan resmi terdekat dengan
-            Cinangka Paradisa Residence yang berada di hulu aliran
-            Sungai Pesanggrahan, sehingga kenaikan di pos ini menjadi
-            indikator dini banjir di wilayah hilir.
+            Pos Pesanggrahan adalah pos pemantauan resmi terdekat
+            dengan kawasan Cinangka, Sawangan, Depok yang berada di
+            hulu aliran Sungai Pesanggrahan, sehingga kenaikan di pos
+            ini menjadi indikator dini banjir di wilayah hilir,
+            termasuk perumahan Cinangka Paradisa Residence.
+          </p>
+
+          <h3>Cinangka Paradisa Residence ada di mana?</h3>
+          <p>
+            Komplek perumahan Cinangka Paradisa Residence terletak di
+            Kelurahan Cinangka, Kecamatan Sawangan, Kota Depok, Provinsi
+            Jawa Barat (kode pos 16518), wilayah perbatasan selatan
+            Jakarta yang dilewati Sungai Pesanggrahan.
           </p>
 
           <h3>Apa artinya bila tinggi muka air bernilai negatif?</h3>
