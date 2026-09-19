@@ -12,6 +12,7 @@ import {
   YAxis,
 } from 'recharts'
 import { ANOMALY_FLOOR_CM, peakInWindow } from '../lib/analytics'
+import { downsample } from '../lib/downsample'
 import type { ResolvedTheme } from '../hooks/useTheme'
 import type { HistoryResponse, ThresholdsCm } from '../types/upstream'
 
@@ -101,12 +102,13 @@ export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
   const thresholds = data.thresholdsCm ?? fallbackThresholdsCm
 
   const { series, droppedAnomalies, peak } = useMemo(() => {
-    const raw = data.points.map((p) => ({ t: p.at.getTime(), cm: p.cm }))
-    const filtered = raw.filter((p) => p.cm >= ANOMALY_FLOOR_CM)
-    const peakPoint = peakInWindow(data.points.filter((p) => p.cm >= ANOMALY_FLOOR_CM))
+    const clean = data.points.filter((p) => p.cm >= ANOMALY_FLOOR_CM)
+    // Peak comes from the full-resolution series so the marker is exact even
+    // when the line itself is drawn from a reduced set.
+    const peakPoint = peakInWindow(clean)
     return {
-      series: filtered,
-      droppedAnomalies: raw.length - filtered.length,
+      series: downsample(clean).map((p) => ({ t: p.at.getTime(), cm: p.cm })),
+      droppedAnomalies: data.points.length - clean.length,
       peak: peakPoint,
     }
   }, [data.points])

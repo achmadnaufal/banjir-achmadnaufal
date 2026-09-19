@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { PESANGGRAHAN, POLL_INTERVAL_MS } from '../config/station'
+import { parseStoredSnapshot, serializeSnapshot } from '../lib/snapshotCache'
 import { fetchSnapshot, findStation } from '../lib/upstream'
 import type { SnapshotRow } from '../types/upstream'
 
@@ -8,48 +9,31 @@ const REVISIBLE_REFRESH_THRESHOLD_MS = 60_000
 const BACKOFF_BASE_MS = 30_000
 const BACKOFF_MAX_MS = 5 * 60_000
 
-type StoredSnapshot = {
-  observedAtIso: string
-  levelCm: number
-  prevLevelCm: number | null
-  thresholdsCm: SnapshotRow['thresholdsCm']
-  statusText: string
-}
-
 function readCachedSnapshot(): SnapshotRow | null {
   if (typeof localStorage === 'undefined') return null
+  let raw: string | null
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const stored = JSON.parse(raw) as StoredSnapshot
-    return {
-      id: PESANGGRAHAN.id,
-      name: PESANGGRAHAN.name,
-      location: PESANGGRAHAN.river,
-      lat: PESANGGRAHAN.lat,
-      lng: PESANGGRAHAN.lng,
-      thresholdsCm: stored.thresholdsCm,
-      observedAt: new Date(stored.observedAtIso),
-      levelCm: stored.levelCm,
-      prevLevelCm: stored.prevLevelCm,
-      statusText: stored.statusText,
-    }
+    raw = localStorage.getItem(STORAGE_KEY)
   } catch {
+    // Storage can throw outright when site data is blocked.
     return null
+  }
+  const cached = parseStoredSnapshot(raw)
+  if (cached === null) return null
+  return {
+    id: PESANGGRAHAN.id,
+    name: PESANGGRAHAN.name,
+    location: PESANGGRAHAN.river,
+    lat: PESANGGRAHAN.lat,
+    lng: PESANGGRAHAN.lng,
+    ...cached,
   }
 }
 
 function writeCachedSnapshot(row: SnapshotRow) {
   if (typeof localStorage === 'undefined') return
-  const stored: StoredSnapshot = {
-    observedAtIso: row.observedAt.toISOString(),
-    levelCm: row.levelCm,
-    prevLevelCm: row.prevLevelCm,
-    thresholdsCm: row.thresholdsCm,
-    statusText: row.statusText,
-  }
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+    localStorage.setItem(STORAGE_KEY, serializeSnapshot(row))
   } catch {
     // quota or privacy mode — ignore
   }

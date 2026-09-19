@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { PESANGGRAHAN, STALE_AFTER_MS } from './config/station'
 import { useLatest } from './hooks/useLatest'
 import { useHistory, type Range } from './hooks/useHistory'
@@ -13,9 +13,23 @@ import { Map } from './components/Map'
 import { RangeToggle } from './components/RangeToggle'
 import { AboutSection } from './components/AboutSection'
 import { KeteranganLegend } from './components/KeteranganLegend'
-import { SiagaChart } from './components/SiagaChart'
 import { StatusCard } from './components/StatusCard'
 import { ThemeToggle } from './components/ThemeToggle'
+
+// Recharts is by far the heaviest dependency here. Splitting it out lets the
+// current water level — the only thing that matters in a hurry — paint
+// without waiting for the charting library to download and parse.
+const SiagaChart = lazy(() =>
+  import('./components/SiagaChart').then((m) => ({ default: m.SiagaChart })),
+)
+
+function ChartPlaceholder({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex aspect-[4/3] items-center justify-center rounded-2xl bg-white text-sm text-zinc-500 shadow-sm sm:aspect-[16/9] dark:bg-zinc-900 dark:text-zinc-400">
+      {children}
+    </div>
+  )
+}
 
 function useNow(intervalMs: number): Date {
   const [now, setNow] = useState<Date>(() => new Date())
@@ -32,7 +46,10 @@ function App() {
   const latest = useLatest()
   const [range, setRange] = useState<Range>('24h')
   const history = useHistory(range)
-  const stats = useHistory('24h')
+  // The stats card always summarises the last 24h. When that is also the
+  // charted range, reuse the same response instead of fetching it twice.
+  const stats24h = useHistory(range === '24h' ? null : '24h')
+  const stats = range === '24h' ? history : stats24h
 
   const displaySnapshot = useMemo(
     () => (latest.data ? freshestSnapshot(latest.data, stats.data) : null),
@@ -103,19 +120,19 @@ function App() {
             <RangeToggle value={range} onChange={setRange} />
           </div>
           {history.data ? (
-            <SiagaChart
-              data={history.data}
-              fallbackThresholdsCm={PESANGGRAHAN.fallbackThresholdsCm}
-              theme={theme.resolved}
-            />
+            <Suspense fallback={<ChartPlaceholder>Loading chart…</ChartPlaceholder>}>
+              <SiagaChart
+                data={history.data}
+                fallbackThresholdsCm={PESANGGRAHAN.fallbackThresholdsCm}
+                theme={theme.resolved}
+              />
+            </Suspense>
           ) : history.error ? (
             <div className="rounded-2xl bg-white p-6 text-sm text-zinc-500 shadow-sm dark:bg-zinc-900 dark:text-zinc-400">
               Could not load chart: {history.error.message}
             </div>
           ) : (
-            <div className="flex aspect-[4/3] items-center justify-center rounded-2xl bg-white text-sm text-zinc-500 shadow-sm sm:aspect-[16/9] dark:bg-zinc-900 dark:text-zinc-400">
-              Loading chart…
-            </div>
+            <ChartPlaceholder>Loading chart…</ChartPlaceholder>
           )}
         </section>
 

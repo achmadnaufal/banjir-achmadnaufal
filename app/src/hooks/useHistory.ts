@@ -40,13 +40,21 @@ export type UseHistoryState = {
   refresh: () => void
 }
 
-export function useHistory(range: Range): UseHistoryState {
+/**
+ * Passing `null` keeps the hook inert (no fetch, no interval). App uses that
+ * to avoid issuing the 24h stats request twice when 24h is also the range
+ * being charted — hooks can't be called conditionally, so the condition
+ * moves into the argument.
+ */
+export function useHistory(range: Range | null): UseHistoryState {
   const [data, setData] = useState<HistoryResponse | null>(null)
   const [error, setError] = useState<Error | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const refreshRef = useRef<() => void>(() => undefined)
 
   useEffect(() => {
+    if (range === null) return
+
     let cancelled = false
     let inflight: AbortController | null = null
     let intervalId: ReturnType<typeof setInterval> | null = null
@@ -80,24 +88,56 @@ export function useHistory(range: Range): UseHistoryState {
       void run()
     }
 
+    const clearPolling = () => {
+      if (intervalId !== null) {
+        clearInterval(intervalId)
+        intervalId = null
+      }
+    }
+
+    const startPolling = () => {
+      clearPolling()
+      intervalId = setInterval(() => {
+        void run()
+      }, HISTORY_REFRESH_MS)
+    }
+
+    // A hidden tab shouldn't keep pulling history in the background — the
+    // 60d range is a ~640 KB response, which is a lot of a phone's data plan
+    // to spend on a chart nobody is looking at.
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void run()
+        startPolling()
+      } else {
+        clearPolling()
+      }
+    }
+
     queueMicrotask(() => {
       if (!cancelled) void run()
     })
-    intervalId = setInterval(() => {
-      void run()
-    }, HISTORY_REFRESH_MS)
+    startPolling()
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibility)
+    }
 
     return () => {
       cancelled = true
-      if (intervalId !== null) clearInterval(intervalId)
+      clearPolling()
       inflight?.abort()
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibility)
+      }
     }
   }, [range])
 
   return {
     data,
     error,
-    isLoading,
+    // An inert hook is not "loading"; it was never asked to fetch.
+    isLoading: range !== null && isLoading,
     refresh: () => refreshRef.current(),
   }
 }
