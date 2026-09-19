@@ -6,13 +6,14 @@ import { useTheme } from './hooks/useTheme'
 import { useTransitionAlert } from './hooks/useTransitionAlert'
 import { freshestSnapshot } from './lib/analytics'
 import { classify } from './lib/siaga'
+import { AboutSection } from './components/AboutSection'
 import { AlertOptIn } from './components/AlertOptIn'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Footer } from './components/Footer'
+import { HistoryTable } from './components/HistoryTable'
+import { KeteranganLegend } from './components/KeteranganLegend'
 import { Map } from './components/Map'
 import { RangeToggle } from './components/RangeToggle'
-import { AboutSection } from './components/AboutSection'
-import { KeteranganLegend } from './components/KeteranganLegend'
 import { StatusCard } from './components/StatusCard'
 import { ThemeToggle } from './components/ThemeToggle'
 
@@ -25,7 +26,7 @@ const SiagaChart = lazy(() =>
 
 function ChartPlaceholder({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex aspect-[4/3] items-center justify-center rounded-2xl bg-white text-sm text-zinc-500 shadow-sm sm:aspect-[16/9] dark:bg-zinc-900 dark:text-zinc-400">
+    <div className="flex aspect-[4/3] items-center justify-center rounded-xl bg-surface text-sm text-ink-3 sm:aspect-[16/9]">
       {children}
     </div>
   )
@@ -69,84 +70,105 @@ function App() {
     history.data?.thresholdsCm ??
     PESANGGRAHAN.fallbackThresholdsCm
 
+  // useHistory keeps the previous response in state across a range change, so
+  // a refetch holds its frame. Dimming it — rather than swapping in a
+  // skeleton — avoids a flash and a layout jump under the reader's thumb.
+  const chartData = history.data
+  const chartIsRefreshing = history.isLoading && chartData !== null
+
   const alert = useTransitionAlert(currentLevel, currentCm)
 
   return (
     <ErrorBoundary>
-      <div className="mx-auto max-w-screen-sm space-y-4 p-4">
-        <header className="flex items-center justify-between border-b border-zinc-200 pb-3 dark:border-zinc-800">
-          <div>
-            <h1 className="leading-tight">
-              <span className="block text-lg font-semibold">Monitor Banjir</span>
-              <span className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                Cinangka Paradisa Residence
-              </span>
+      <div className="mx-auto max-w-screen-sm px-4">
+        <header className="flex items-center justify-between gap-3 border-b border-hairline py-4">
+          <div className="min-w-0">
+            <h1 className="truncate text-[15px] leading-tight font-semibold tracking-[-0.01em]">
+              Monitor Banjir Cinangka
             </h1>
-            <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
-              data: {PESANGGRAHAN.name} · Sungai {PESANGGRAHAN.river}
+            <p className="mt-0.5 truncate text-xs text-ink-3">
+              Sungai {PESANGGRAHAN.river} · Paradisa Residence
             </p>
           </div>
           <ThemeToggle preference={theme.preference} onCycle={theme.cycle} />
         </header>
 
-        {displaySnapshot ? (
-          <StatusCard
-            snapshot={displaySnapshot}
-            isStale={now.getTime() - displaySnapshot.observedAt.getTime() > STALE_AFTER_MS}
-            now={now}
-            stats={stats.data}
-          />
-        ) : latest.error ? (
-          <section className="rounded-2xl bg-red-50 p-6 text-sm text-red-900 dark:bg-red-950 dark:text-red-100">
-            <p className="font-medium">Could not load latest reading</p>
-            <p className="mt-1 text-xs">{latest.error.message}</p>
-            <button
-              type="button"
-              onClick={latest.refresh}
-              className="mt-3 min-h-11 rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700"
-            >
-              Retry
-            </button>
-          </section>
-        ) : (
-          <section className="rounded-2xl bg-white p-6 shadow-sm dark:bg-zinc-900">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Loading…</p>
-          </section>
-        )}
+        <main className="space-y-3 py-4">
+          {displaySnapshot ? (
+            <StatusCard
+              snapshot={displaySnapshot}
+              isStale={now.getTime() - displaySnapshot.observedAt.getTime() > STALE_AFTER_MS}
+              now={now}
+              stats={stats.data}
+            />
+          ) : latest.error ? (
+            <section className="overflow-hidden rounded-xl bg-surface">
+              <div className="h-1 w-full bg-critical" />
+              <div className="px-5 py-4">
+                <p className="text-sm font-medium">Gagal memuat bacaan terbaru</p>
+                <p className="mt-1 text-xs text-ink-3">{latest.error.message}</p>
+                <button
+                  type="button"
+                  onClick={latest.refresh}
+                  className="mt-3 min-h-10 rounded-lg bg-ink px-4 text-sm font-medium text-plane hover:opacity-90"
+                >
+                  Coba lagi
+                </button>
+              </div>
+            </section>
+          ) : (
+            <section className="rounded-xl bg-surface px-5 py-8">
+              <p className="text-sm text-ink-3">Memuat…</p>
+            </section>
+          )}
 
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Trend</h2>
+          {/* One filter row, above everything it scopes. */}
+          <div className="pt-2">
             <RangeToggle value={range} onChange={setRange} />
           </div>
-          {history.data ? (
-            <Suspense fallback={<ChartPlaceholder>Loading chart…</ChartPlaceholder>}>
-              <SiagaChart
-                data={history.data}
+
+          <div className="space-y-2">
+            {chartData ? (
+              <div
+                className={`transition-opacity ${chartIsRefreshing ? 'opacity-50' : ''}`}
+                aria-busy={chartIsRefreshing}
+              >
+                <Suspense fallback={<ChartPlaceholder>Memuat grafik…</ChartPlaceholder>}>
+                  <SiagaChart
+                    data={chartData}
+                    fallbackThresholdsCm={PESANGGRAHAN.fallbackThresholdsCm}
+                    theme={theme.resolved}
+                  />
+                </Suspense>
+              </div>
+            ) : history.error ? (
+              <div className="rounded-xl bg-surface px-4 py-6 text-sm text-ink-3">
+                Gagal memuat grafik: {history.error.message}
+              </div>
+            ) : (
+              <ChartPlaceholder>Memuat grafik…</ChartPlaceholder>
+            )}
+
+            {chartData && (
+              <HistoryTable
+                data={chartData}
                 fallbackThresholdsCm={PESANGGRAHAN.fallbackThresholdsCm}
-                theme={theme.resolved}
               />
-            </Suspense>
-          ) : history.error ? (
-            <div className="rounded-2xl bg-white p-6 text-sm text-zinc-500 shadow-sm dark:bg-zinc-900 dark:text-zinc-400">
-              Could not load chart: {history.error.message}
-            </div>
-          ) : (
-            <ChartPlaceholder>Loading chart…</ChartPlaceholder>
-          )}
-        </section>
+            )}
+          </div>
 
-        <KeteranganLegend thresholdsCm={thresholdsCm} currentLevel={currentLevel} />
+          <KeteranganLegend thresholdsCm={thresholdsCm} currentLevel={currentLevel} />
 
-        <Map />
+          <AlertOptIn
+            permission={alert.permission}
+            onRequest={() => void alert.requestPermission()}
+            onTest={alert.testChime}
+          />
 
-        <AlertOptIn
-          permission={alert.permission}
-          onRequest={() => void alert.requestPermission()}
-          onTest={alert.testChime}
-        />
+          <Map />
 
-        <AboutSection />
+          <AboutSection />
+        </main>
 
         <Footer lastFetchedAt={latest.lastFetchedAt} />
       </div>

@@ -13,6 +13,8 @@ import {
 } from 'recharts'
 import { ANOMALY_FLOOR_CM, peakInWindow } from '../lib/analytics'
 import { downsample } from '../lib/downsample'
+import { bands } from '../lib/siaga'
+import { STATUS_HEX } from '../lib/statusTokens'
 import type { ResolvedTheme } from '../hooks/useTheme'
 import type { HistoryResponse, ThresholdsCm } from '../types/upstream'
 
@@ -22,20 +24,20 @@ type Props = {
   theme: ResolvedTheme
 }
 
-const TIME_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+const TIME_FORMATTER = new Intl.DateTimeFormat('id-ID', {
   timeZone: 'Asia/Jakarta',
   hour: '2-digit',
   minute: '2-digit',
   hour12: false,
 })
 
-const DAY_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+const DAY_FORMATTER = new Intl.DateTimeFormat('id-ID', {
   timeZone: 'Asia/Jakarta',
   day: '2-digit',
   month: 'short',
 })
 
-const DATE_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+const DATE_FORMATTER = new Intl.DateTimeFormat('id-ID', {
   timeZone: 'Asia/Jakarta',
   day: '2-digit',
   month: 'short',
@@ -46,55 +48,34 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('en-GB', {
 
 const MULTI_DAY_THRESHOLD_MS = 36 * 60 * 60 * 1000
 
-type Theme = {
+type ChartTheme = {
+  surface: string
   axis: string
   grid: string
   line: string
   tooltipBg: string
   tooltipText: string
-  bandSiaga3: string
-  bandSiaga2: string
-  bandSiaga1: string
-  bandNormal: string
-  lineSiaga3: string
-  lineSiaga2: string
-  lineSiaga1: string
+  tooltipMuted: string
 }
 
-type ThemeWithPeak = Theme & { peakDot: string; peakRing: string }
-
-const LIGHT: ThemeWithPeak = {
-  axis: '#71717a',
-  grid: '#e4e4e7',
-  line: '#0f172a',
-  tooltipBg: 'rgba(24,24,27,0.92)',
-  tooltipText: '#fafafa',
-  bandNormal: '#10b981',
-  bandSiaga3: '#fde047',
-  bandSiaga2: '#fb923c',
-  bandSiaga1: '#ef4444',
-  lineSiaga3: '#ca8a04',
-  lineSiaga2: '#ea580c',
-  lineSiaga1: '#dc2626',
-  peakDot: '#dc2626',
-  peakRing: '#ffffff',
+const LIGHT: ChartTheme = {
+  surface: '#fcfcfb',
+  axis: '#898781',
+  grid: '#e3e2dd',
+  line: '#0b0b0b',
+  tooltipBg: '#0b0b0b',
+  tooltipText: '#ffffff',
+  tooltipMuted: '#c3c2b7',
 }
 
-const DARK: ThemeWithPeak = {
-  axis: '#a1a1aa',
-  grid: '#3f3f46',
-  line: '#e2e8f0',
-  tooltipBg: 'rgba(244,244,245,0.95)',
-  tooltipText: '#18181b',
-  bandNormal: '#34d399',
-  bandSiaga3: '#facc15',
-  bandSiaga2: '#fb923c',
-  bandSiaga1: '#f87171',
-  lineSiaga3: '#facc15',
-  lineSiaga2: '#fb923c',
-  lineSiaga1: '#f87171',
-  peakDot: '#f87171',
-  peakRing: '#18181b',
+const DARK: ChartTheme = {
+  surface: '#1a1a19',
+  axis: '#898781',
+  grid: '#2e2e2b',
+  line: '#ffffff',
+  tooltipBg: '#f9f9f7',
+  tooltipText: '#0b0b0b',
+  tooltipMuted: '#52514e',
 }
 
 export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
@@ -115,8 +96,8 @@ export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
 
   if (series.length === 0) {
     return (
-      <div className="flex aspect-[4/3] items-center justify-center rounded-2xl bg-white text-sm text-zinc-500 shadow-sm sm:aspect-[16/9] dark:bg-zinc-900 dark:text-zinc-400">
-        No data available
+      <div className="flex aspect-[4/3] items-center justify-center rounded-xl bg-surface text-sm text-ink-3 sm:aspect-[16/9]">
+        Belum ada data
       </div>
     )
   }
@@ -125,92 +106,139 @@ export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
   const maxObserved = Math.max(...series.map((p) => p.cm))
   const spanMs = series[series.length - 1].t - series[0].t
   const isMultiDay = spanMs >= MULTI_DAY_THRESHOLD_MS
-  const xTickFormatter = (v: number) => {
-    const d = new Date(v)
-    return isMultiDay ? DAY_FORMATTER.format(d) : TIME_FORMATTER.format(d)
-  }
+  const xTickFormatter = (v: number) =>
+    isMultiDay ? DAY_FORMATTER.format(new Date(v)) : TIME_FORMATTER.format(new Date(v))
+
+  // Where the peak sits along the x-axis, so its direct label can dodge the
+  // plot edge rather than being cropped by it.
+  const firstT = series[0].t
+  const lastT = series[series.length - 1].t
+  const peakFraction =
+    peak === null || lastT === firstT ? 0.5 : (peak.at.getTime() - firstT) / (lastT - firstT)
+  const peakNearEnd: 'left' | 'right' | null =
+    peakFraction > 0.82 ? 'right' : peakFraction < 0.18 ? 'left' : null
 
   const yMax = Math.ceil(Math.max(thresholds.siaga1 * 1.05, maxObserved * 1.1) / 10) * 10
-  const yMinFloor = Math.min(minObserved, thresholds.siaga3)
-  const yMin = Math.max(0, Math.floor((yMinFloor - 20) / 10) * 10)
+  const yMin = Math.max(0, Math.floor((Math.min(minObserved, thresholds.siaga3) - 20) / 10) * 10)
+
+  // Bands share the page's status steps, so the chart and the legend are the
+  // same colour language rather than two parallel ones.
+  const areas = [
+    { y1: yMin, y2: thresholds.siaga3, fill: STATUS_HEX.good },
+    { y1: thresholds.siaga3, y2: thresholds.siaga2, fill: STATUS_HEX.warning },
+    { y1: thresholds.siaga2, y2: thresholds.siaga1, fill: STATUS_HEX.serious },
+    { y1: thresholds.siaga1, y2: yMax, fill: STATUS_HEX.critical },
+  ]
+
+  const lines = bands(thresholds)
+    .filter((b) => b.level !== 'normal')
+    .map((b) => ({
+      y: b.level === 'siaga1' ? thresholds.siaga1 : b.level === 'siaga2' ? thresholds.siaga2 : thresholds.siaga3,
+      label: b.label.toLowerCase(),
+      stroke: b.level === 'siaga1' ? STATUS_HEX.critical : b.level === 'siaga2' ? STATUS_HEX.serious : STATUS_HEX.warning,
+    }))
 
   return (
-    <div className="aspect-[4/3] w-full rounded-2xl bg-white p-2 shadow-sm sm:aspect-[16/9] dark:bg-zinc-900">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={series} margin={{ top: 16, right: 12, bottom: 8, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={t.grid} strokeOpacity={0.5} />
-          <XAxis
-            dataKey="t"
-            type="number"
-            domain={['dataMin', 'dataMax']}
-            scale="time"
-            tickFormatter={xTickFormatter}
-            stroke={t.axis}
-            tick={{ fill: t.axis, fontSize: 11 }}
-            minTickGap={32}
-          />
-          <YAxis
-            domain={[yMin, yMax]}
-            stroke={t.axis}
-            tick={{ fill: t.axis, fontSize: 11 }}
-            tickFormatter={(v) => `${v}`}
-            width={32}
-          />
-          <ReferenceArea y1={yMin} y2={thresholds.siaga3} fill={t.bandNormal} fillOpacity={0.12} />
-          <ReferenceArea y1={thresholds.siaga3} y2={thresholds.siaga2} fill={t.bandSiaga3} fillOpacity={0.18} />
-          <ReferenceArea y1={thresholds.siaga2} y2={thresholds.siaga1} fill={t.bandSiaga2} fillOpacity={0.18} />
-          <ReferenceArea y1={thresholds.siaga1} y2={yMax} fill={t.bandSiaga1} fillOpacity={0.18} />
-          <ReferenceLine
-            y={thresholds.siaga3}
-            stroke={t.lineSiaga3}
-            strokeDasharray="4 4"
-            label={{ value: 'waspada', position: 'insideTopRight', fontSize: 10, fill: t.lineSiaga3, dy: -2 }}
-          />
-          <ReferenceLine
-            y={thresholds.siaga2}
-            stroke={t.lineSiaga2}
-            strokeDasharray="4 4"
-            label={{ value: 'siaga', position: 'insideTopRight', fontSize: 10, fill: t.lineSiaga2, dy: -2 }}
-          />
-          <ReferenceLine
-            y={thresholds.siaga1}
-            stroke={t.lineSiaga1}
-            strokeDasharray="4 4"
-            label={{ value: 'bahaya', position: 'insideTopRight', fontSize: 10, fill: t.lineSiaga1, dy: -2 }}
-          />
-          <Tooltip
-            contentStyle={{ background: t.tooltipBg, border: 'none', color: t.tooltipText, fontSize: 12, borderRadius: 8 }}
-            labelStyle={{ color: t.tooltipText }}
-            itemStyle={{ color: t.tooltipText }}
-            labelFormatter={(label) => DATE_FORMATTER.format(new Date(Number(label)))}
-            formatter={(value) => [`${Number(value)} cm`, 'Level'] as [string, string]}
-          />
-          <Line type="monotone" dataKey="cm" stroke={t.line} strokeWidth={1.75} dot={false} isAnimationActive={false} />
-          {peak && (
-            <ReferenceDot
-              x={peak.at.getTime()}
-              y={peak.cm}
-              r={5}
-              fill={t.peakDot}
-              stroke={t.peakRing}
-              strokeWidth={2}
-              ifOverflow="extendDomain"
-              label={{
-                value: `peak ${Math.round(peak.cm)}`,
-                position: 'top',
-                fontSize: 10,
-                fill: t.peakDot,
-                offset: 8,
-              }}
+    <figure className="m-0 rounded-xl bg-surface p-2 pt-3">
+      <div className="aspect-[4/3] w-full sm:aspect-[16/9]">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={series} margin={{ top: 14, right: 12, bottom: 4, left: 0 }}>
+            {/* Solid hairlines: a dashed grid reads as "threshold" when it is
+                only a grid. The dashes below are real thresholds. */}
+            <CartesianGrid stroke={t.grid} vertical={false} />
+            <XAxis
+              dataKey="t"
+              type="number"
+              domain={['dataMin', 'dataMax']}
+              scale="time"
+              tickFormatter={xTickFormatter}
+              stroke={t.grid}
+              tick={{ fill: t.axis, fontSize: 11 }}
+              tickLine={false}
+              minTickGap={36}
             />
-          )}
-        </LineChart>
-      </ResponsiveContainer>
+            <YAxis
+              domain={[yMin, yMax]}
+              stroke={t.grid}
+              tick={{ fill: t.axis, fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+              width={34}
+            />
+
+            {areas.map((a) => (
+              <ReferenceArea key={a.fill} y1={a.y1} y2={a.y2} fill={a.fill} fillOpacity={0.1} />
+            ))}
+
+            {lines.map((l) => (
+              <ReferenceLine
+                key={l.label}
+                y={l.y}
+                stroke={l.stroke}
+                strokeDasharray="5 4"
+                strokeOpacity={0.9}
+                label={{
+                  value: l.label,
+                  position: 'insideTopRight',
+                  fontSize: 10,
+                  fill: t.axis,
+                  dy: -2,
+                }}
+              />
+            ))}
+
+            <Tooltip
+              cursor={{ stroke: t.axis, strokeWidth: 1 }}
+              contentStyle={{
+                background: t.tooltipBg,
+                border: 'none',
+                borderRadius: 8,
+                padding: '8px 10px',
+                fontSize: 12,
+              }}
+              labelStyle={{ color: t.tooltipMuted, fontSize: 11, marginBottom: 2 }}
+              itemStyle={{ color: t.tooltipText, fontSize: 14, fontWeight: 600 }}
+              labelFormatter={(label) => DATE_FORMATTER.format(new Date(Number(label)))}
+              formatter={(value) => [`${Math.round(Number(value))} cm`, ''] as [string, string]}
+            />
+
+            <Line
+              type="monotone"
+              dataKey="cm"
+              stroke={t.line}
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+            />
+
+            {peak && (
+              <ReferenceDot
+                x={peak.at.getTime()}
+                y={peak.cm}
+                r={4}
+                fill={t.line}
+                stroke={t.surface}
+                strokeWidth={2}
+                ifOverflow="extendDomain"
+                label={{
+                  value: `puncak ${Math.round(peak.cm)}`,
+                  // A peak near either end would have its label clipped by the
+                  // plot edge, so anchor it inward on the crowded side.
+                  position: peakNearEnd === 'right' ? 'left' : peakNearEnd === 'left' ? 'right' : 'top',
+                  fontSize: 10,
+                  fill: t.axis,
+                  offset: 8,
+                }}
+              />
+            )}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
       {droppedAnomalies > 0 && (
-        <p className="px-3 pb-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-          Hid {droppedAnomalies} sensor-anomaly point{droppedAnomalies === 1 ? '' : 's'} (negative readings).
-        </p>
+        <figcaption className="px-2 pt-1 pb-1 text-[11px] text-ink-3">
+          {droppedAnomalies} bacaan anomali (negatif) disembunyikan.
+        </figcaption>
       )}
-    </div>
+    </figure>
   )
 }

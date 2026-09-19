@@ -6,56 +6,60 @@ type Props = {
   onTest: () => void
 }
 
+function Note({ children }: { children: React.ReactNode }) {
+  return <p className="rounded-xl bg-surface px-4 py-3.5 text-sm text-ink-2">{children}</p>
+}
+
 export function AlertOptIn({ permission, onRequest, onTest }: Props) {
   if (permission === 'unsupported') {
-    return (
-      <div className="rounded-2xl bg-white p-4 text-sm text-zinc-500 shadow-sm dark:bg-zinc-900 dark:text-zinc-400">
-        Notifications are not supported on this browser. The chart will still update while this page is open.
-      </div>
-    )
+    return <Note>Peramban ini tidak mendukung notifikasi. Grafik tetap diperbarui selama halaman terbuka.</Note>
   }
 
   if (permission === 'denied') {
     return (
-      <div className="rounded-2xl bg-white p-4 text-sm text-zinc-600 shadow-sm dark:bg-zinc-900 dark:text-zinc-400">
-        Notifications are blocked. Re-enable them in your browser site settings to get rising-siaga alerts.
-      </div>
+      <Note>
+        Notifikasi diblokir. Aktifkan kembali di pengaturan situs peramban untuk menerima peringatan
+        kenaikan siaga.
+      </Note>
     )
   }
 
   if (permission === 'granted') {
     return (
-      <section className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm dark:bg-zinc-900">
-        <div>
-          <p className="font-medium">Alerts on</p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            You'll get a notification + chime when the level rises into a higher siaga band.
+      <section className="flex items-center gap-4 rounded-xl bg-surface px-4 py-3.5">
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-1.5 text-sm font-medium">
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-good" />
+            Peringatan aktif
+          </p>
+          <p className="mt-0.5 text-xs text-ink-3">
+            Notifikasi dan nada akan berbunyi saat air naik ke band yang lebih tinggi.
           </p>
         </div>
         <button
           type="button"
           onClick={onTest}
-          className="min-h-11 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          className="min-h-9 shrink-0 rounded-lg border border-hairline-strong px-3 text-xs font-medium text-ink-2 hover:bg-sunken hover:text-ink"
         >
-          Test chime
+          Tes nada
         </button>
       </section>
     )
   }
 
   return (
-    <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-zinc-900">
-      <p className="mb-2 font-medium">Enable rising-siaga alerts</p>
-      <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
-        Browser notifications fire only while this page is open. Pin to your home screen and keep it open in
-        the background for monitoring.
+    <section className="rounded-xl bg-surface px-4 py-3.5">
+      <p className="text-sm font-medium">Aktifkan peringatan dini</p>
+      <p className="mt-1 text-xs text-ink-3">
+        Notifikasi hanya berbunyi selama halaman ini terbuka. Pasang di layar utama dan biarkan
+        terbuka saat hujan deras.
       </p>
       <button
         type="button"
         onClick={onRequest}
-        className="min-h-11 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="mt-3 min-h-10 rounded-lg bg-ink px-4 text-sm font-medium text-plane hover:opacity-90"
       >
-        Enable alerts
+        Aktifkan peringatan
       </button>
     </section>
   )

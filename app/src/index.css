@@ -2,7 +2,42 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Design tokens. Both modes are *selected* — the dark column is stepped for
+   the dark surface, not an automatic inversion of the light one. Status steps
+   are fixed and reserved: they never double as decoration. */
+@theme {
+  --color-plane: #f9f9f7;
+  --color-surface: #fcfcfb;
+  --color-sunken: #f2f1ed;
+  --color-hairline: #e3e2dd;
+  --color-hairline-strong: #cecdc6;
+
+  --color-ink: #0b0b0b;
+  --color-ink-2: #52514e;
+  --color-ink-3: #898781;
+
+  --color-good: #0ca30c;
+  --color-warning: #fab219;
+  --color-serious: #ec835a;
+  --color-critical: #d03b3b;
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+}
+
 @layer base {
+  .dark {
+    --color-plane: #0d0d0d;
+    --color-surface: #1a1a19;
+    --color-sunken: #121211;
+    --color-hairline: #2e2e2b;
+    --color-hairline-strong: #43423e;
+
+    --color-ink: #ffffff;
+    --color-ink-2: #c3c2b7;
+    --color-ink-3: #898781;
+  }
+
   html {
     color-scheme: light dark;
   }
@@ -12,10 +47,33 @@
   html:not(.dark) {
     color-scheme: light;
   }
+
   body {
     margin: 0;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--color-plane);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  /* The instrument voice: small, letterspaced, quiet field names, so the
+     numbers carry all the weight. */
+  .label {
+    font-size: 10px;
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-ink-3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -13,22 +13,28 @@ const GOOGLE_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${PESAN
 
 export function Map() {
   return (
-    <section className="overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-zinc-900" aria-label="Station location">
+    <section className="overflow-hidden rounded-xl bg-surface" aria-label="Lokasi pos pantau">
+      <div className="flex items-center justify-between gap-3 px-4 py-3">
+        <div className="min-w-0">
+          <h2 className="label">Pos pantau</h2>
+          <p className="mt-1 truncate text-sm font-medium">{PESANGGRAHAN.name}</p>
+        </div>
+        <a
+          href={GOOGLE_MAPS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 text-xs font-medium text-ink-2 underline-offset-4 hover:text-ink hover:underline"
+        >
+          Buka di peta →
+        </a>
+      </div>
       <iframe
-        title={`Map showing ${PESANGGRAHAN.name}`}
+        title={`Peta lokasi ${PESANGGRAHAN.name}`}
         src={OSM_URL}
-        className="aspect-square w-full border-0 sm:aspect-video"
+        className="aspect-[16/10] w-full border-0 border-t border-hairline"
         loading="lazy"
         referrerPolicy="no-referrer"
       />
-      <a
-        href={GOOGLE_MAPS_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block px-4 py-3 text-center text-sm text-zinc-600 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
-      >
-        Open in Google Maps →
-      </a>
     </section>
   )
 }

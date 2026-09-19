@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
@@ -22,18 +22,20 @@ describe('App smoke', () => {
 
   it('shows the level, the official band name and the legend', async () => {
     render(<App />)
-    await waitFor(() => expect(screen.getByText(/280 cm \(2\.80 m\)/)).toBeInTheDocument())
+    const hero = await screen.findByTestId('hero-level')
+    expect(hero).toHaveTextContent('280')
+    expect(screen.getByText('2.80 m')).toBeInTheDocument()
     // 280cm sits in the 250-350 band -> SIAGA per the official legend.
     expect(screen.getByRole('status')).toHaveTextContent('SIAGA')
     const legend = screen.getByRole('region', { name: /keterangan/i })
     expect(legend).toHaveTextContent('> 350 cm')
     expect(legend).toHaveTextContent('BAHAYA')
-    expect(screen.queryByText(/Something went wrong/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Terjadi kesalahan/i)).not.toBeInTheDocument()
   })
 
   it('marks the current band in the legend', async () => {
     render(<App />)
-    await waitFor(() => expect(screen.getByText(/280 cm \(2\.80 m\)/)).toBeInTheDocument())
+    await screen.findByTestId('hero-level')
     const legend = screen.getByRole('region', { name: /keterangan/i })
     const current = legend.querySelector('[aria-current="true"]')
     expect(current).toHaveTextContent('SIAGA')

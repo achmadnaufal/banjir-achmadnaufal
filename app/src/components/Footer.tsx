@@ -2,7 +2,7 @@ type Props = {
   lastFetchedAt: Date | null
 }
 
-const POLL_TIME_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+const POLL_TIME_FORMATTER = new Intl.DateTimeFormat('id-ID', {
   timeZone: 'Asia/Jakarta',
   hour: '2-digit',
   minute: '2-digit',
@@ -11,28 +11,27 @@ const POLL_TIME_FORMATTER = new Intl.DateTimeFormat('en-GB', {
 
 export function Footer({ lastFetchedAt }: Props) {
   return (
-    <footer className="space-y-1 px-2 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
+    <footer className="mt-2 border-t border-hairline px-1 pt-5 pb-8 text-xs text-ink-3">
       <p>
-        Source:{' '}
+        Sumber data{' '}
         <a
-          className="underline-offset-2 hover:underline"
+          className="text-ink-2 underline-offset-4 hover:text-ink hover:underline"
           href="https://poskobanjir.dsdadki.web.id"
           target="_blank"
           rel="noopener noreferrer"
         >
           poskobanjir.dsdadki.web.id
-        </a>
+        </a>{' '}
+        · Dinas SDA DKI Jakarta
       </p>
-      <p>
+      <p className="mt-1">
         {lastFetchedAt
-          ? `Last poll ${POLL_TIME_FORMATTER.format(lastFetchedAt)} WIB`
-          : 'Fetching latest data…'}
+          ? `Pembaruan terakhir ${POLL_TIME_FORMATTER.format(lastFetchedAt)} WIB · peringatan hanya aktif selama halaman terbuka`
+          : 'Mengambil data terbaru…'}
       </p>
-      <p>Alerts only fire while this page is open.</p>
-      <p className="pt-2 text-zinc-400 dark:text-zinc-500">
-        Built by{' '}
+      <p className="mt-3">
         <a
-          className="underline-offset-2 hover:underline"
+          className="text-ink-2 underline-offset-4 hover:text-ink hover:underline"
           href="https://achmadnaufal.com"
           target="_blank"
           rel="noopener noreferrer"
@@ -41,12 +40,12 @@ export function Footer({ lastFetchedAt }: Props) {
         </a>
         {' · '}
         <a
-          className="underline-offset-2 hover:underline"
+          className="text-ink-2 underline-offset-4 hover:text-ink hover:underline"
           href="https://github.com/achmadnaufal/banjir-achmadnaufal"
           target="_blank"
           rel="noopener noreferrer"
         >
-          source on GitHub
+          kode sumber
         </a>
       </p>
     </footer>
