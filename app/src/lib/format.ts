@@ -10,29 +10,53 @@ export function formatLevel(cm: number): string {
   return `${rounded} cm (${meters} m)`
 }
 
-export function timeSince(from: Date, now: Date): string {
-  const diffMs = now.getTime() - from.getTime()
-  if (diffMs < 60_000) return 'baru saja'
-  const minutes = Math.floor(diffMs / 60_000)
-  if (minutes < 60) return `${minutes} mnt lalu`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} jam lalu`
-  const days = Math.floor(hours / 24)
-  return `${days} hari lalu`
+const RELATIVE_CACHE = new Map<string, Intl.RelativeTimeFormat>()
+
+function relative(tag: string): Intl.RelativeTimeFormat {
+  let f = RELATIVE_CACHE.get(tag)
+  if (!f) {
+    f = new Intl.RelativeTimeFormat(tag, { numeric: 'always', style: 'short' })
+    RELATIVE_CACHE.set(tag, f)
+  }
+  return f
 }
 
-const STAMP_FORMATTER = new Intl.DateTimeFormat('en-GB', {
-  timeZone: 'Asia/Jakarta',
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-})
+/**
+ * Relative age of a reading. Intl handles the wording and plural rules per
+ * locale; only the sub-minute case is ours, because "0 minutes ago" is not
+ * what anyone means by a reading that just landed.
+ */
+export function timeSince(from: Date, now: Date, tag: string, justNow: string): string {
+  const diffMs = now.getTime() - from.getTime()
+  if (diffMs < 60_000) return justNow
+  const minutes = Math.floor(diffMs / 60_000)
+  if (minutes < 60) return relative(tag).format(-minutes, 'minute')
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return relative(tag).format(-hours, 'hour')
+  return relative(tag).format(-Math.floor(hours / 24), 'day')
+}
 
-export function formatStamp(d: Date): string {
-  const parts = STAMP_FORMATTER.formatToParts(d)
+const STAMP_CACHE = new Map<string, Intl.DateTimeFormat>()
+
+function stampFormatter(tag: string): Intl.DateTimeFormat {
+  let f = STAMP_CACHE.get(tag)
+  if (!f) {
+    f = new Intl.DateTimeFormat(tag, {
+      timeZone: 'Asia/Jakarta',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+    STAMP_CACHE.set(tag, f)
+  }
+  return f
+}
+
+export function formatStamp(d: Date, tag: string): string {
+  const parts = stampFormatter(tag).formatToParts(d)
   const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? ''
   const day = get('day')
   const month = get('month')
@@ -48,20 +72,20 @@ export function trendArrow(t: Trend): '▲' | '▼' | '■' {
   return '■'
 }
 
-export type DurationOpts = { compact?: boolean }
+export type DurationUnits = {
+  durationDay: (n: number) => string
+  durationHourMin: (h: number, m: number) => string
+  durationMin: (n: number) => string
+}
 
-export function formatDuration(ms: number, opts: DurationOpts = {}): string {
-  const compact = opts.compact === true
-  if (ms <= 0) return compact ? '0m' : '0 mnt'
+/**
+ * Elapsed/remaining time. Intl.DurationFormat is not available widely enough
+ * to rely on, so the unit wording comes from the message catalogue.
+ */
+export function formatDuration(ms: number, u: DurationUnits): string {
+  if (ms <= 0) return u.durationMin(0)
   const totalMin = Math.floor(ms / 60_000)
-  if (totalMin >= 60 * 24) {
-    const days = Math.floor(totalMin / (60 * 24))
-    return compact ? `${days}hr` : `${days} hari`
-  }
-  if (totalMin >= 60) {
-    const h = Math.floor(totalMin / 60)
-    const m = totalMin % 60
-    return compact ? `${h}j${m}m` : `${h}j ${m}mnt`
-  }
-  return compact ? `${totalMin}m` : `${totalMin} mnt`
+  if (totalMin >= 60 * 24) return u.durationDay(Math.floor(totalMin / (60 * 24)))
+  if (totalMin >= 60) return u.durationHourMin(Math.floor(totalMin / 60), totalMin % 60)
+  return u.durationMin(totalMin)
 }

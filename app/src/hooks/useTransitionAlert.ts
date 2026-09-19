@@ -26,9 +26,24 @@ function getAudioContextCtor(): typeof AudioContext | null {
   return w.AudioContext ?? w.webkitAudioContext ?? null
 }
 
-export function useTransitionAlert(currentLevel: SiagaLevel | null, currentCm: number | null): UseTransitionAlertResult {
+export type AlertCopy = {
+  title: (band: string, level: string) => string
+  body: string
+}
+
+export function useTransitionAlert(
+  currentLevel: SiagaLevel | null,
+  currentCm: number | null,
+  copy: AlertCopy,
+): UseTransitionAlertResult {
   const [permission, setPermission] = useState<NotificationPermissionState>(() => readPermission())
   const prevRef = useRef<SiagaLevel | null>(null)
+  // Held in a ref so switching language never re-runs the transition effect
+  // (which would risk a duplicate chime).
+  const copyRef = useRef(copy)
+  useEffect(() => {
+    copyRef.current = copy
+  }, [copy])
   const audioCtxRef = useRef<AudioContext | null>(null)
 
   const playChime = useCallback(() => {
@@ -76,10 +91,10 @@ export function useTransitionAlert(currentLevel: SiagaLevel | null, currentCm: n
     if (window.Notification.permission !== 'granted') return
 
     const meta = siagaMeta(currentLevel)
-    const levelStr = currentCm === null ? '' : ` — ${formatLevel(currentCm)}`
+    const levelStr = currentCm === null ? '' : formatLevel(currentCm)
     try {
-      new window.Notification(`${meta.label} rising${levelStr}`, {
-        body: 'Pesanggrahan water level entered a higher alert band.',
+      new window.Notification(copyRef.current.title(meta.label, levelStr), {
+        body: copyRef.current.body,
         tag: `banjir-${currentLevel}`,
         icon: '/favicon.svg',
       })

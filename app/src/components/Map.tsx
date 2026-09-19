@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/useI18n'
 import { PESANGGRAHAN } from '../config/station'
 
 const DELTA = 0.01
@@ -12,11 +13,13 @@ const OSM_URL = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&la
 const GOOGLE_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${PESANGGRAHAN.lat},${PESANGGRAHAN.lng}`
 
 export function Map() {
+  const { t } = useI18n()
+
   return (
-    <section className="overflow-hidden rounded-xl bg-surface" aria-label="Lokasi pos pantau">
+    <section className="overflow-hidden rounded-xl bg-surface" aria-label={t.mapRegion}>
       <div className="flex items-center justify-between gap-3 px-4 py-3">
         <div className="min-w-0">
-          <h2 className="label">Pos pantau</h2>
+          <h2 className="label">{t.mapHeading}</h2>
           <p className="mt-1 truncate text-sm font-medium">{PESANGGRAHAN.name}</p>
         </div>
         <a
@@ -25,11 +28,11 @@ export function Map() {
           rel="noopener noreferrer"
           className="shrink-0 text-xs font-medium text-ink-2 underline-offset-4 hover:text-ink hover:underline"
         >
-          Buka di peta →
+          {t.mapOpen}
         </a>
       </div>
       <iframe
-        title={`Peta lokasi ${PESANGGRAHAN.name}`}
+        title={`${t.mapRegion}: ${PESANGGRAHAN.name}`}
         src={OSM_URL}
         className="aspect-[16/10] w-full border-0 border-t border-hairline"
         loading="lazy"

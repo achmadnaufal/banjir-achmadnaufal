@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/useI18n'
 import { bands, type SiagaLevel } from '../lib/siaga'
 import { statusToken } from '../lib/statusTokens'
 import type { ThresholdsCm } from '../types/upstream'
@@ -9,9 +10,11 @@ type Props = {
 }
 
 export function KeteranganLegend({ thresholdsCm, currentLevel = null }: Props) {
+  const { t } = useI18n()
+
   return (
-    <section className="rounded-xl bg-surface px-4 py-3.5" aria-label="Keterangan status siaga">
-      <h2 className="label">Keterangan</h2>
+    <section className="rounded-xl bg-surface px-4 py-3.5" aria-label={t.legendRegion}>
+      <h2 className="label">{t.legendHeading}</h2>
       <ul className="mt-2.5 space-y-1.5">
         {bands(thresholdsCm).map((band) => {
           const token = statusToken(band.level)
@@ -32,13 +35,16 @@ export function KeteranganLegend({ thresholdsCm, currentLevel = null }: Props) {
               <span className={`tabular-nums ${isActive ? 'text-ink' : 'text-ink-2'}`}>
                 {band.rangeText}
               </span>
+              {t.bandGloss[band.level] && (
+                <span className="truncate text-xs text-ink-3">{t.bandGloss[band.level]}</span>
+              )}
               <span
                 className={`ml-auto text-[11px] font-semibold tracking-[0.08em] uppercase ${
                   isActive ? 'text-ink' : 'text-ink-3'
                 }`}
               >
                 {band.label}
-                {isActive && <span className="sr-only"> (status saat ini)</span>}
+                {isActive && <span className="sr-only"> {t.currentStatusNote}</span>}
               </span>
               {isActive && (
                 <span

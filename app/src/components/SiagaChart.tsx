@@ -15,6 +15,7 @@ import { ANOMALY_FLOOR_CM, peakInWindow } from '../lib/analytics'
 import { downsample } from '../lib/downsample'
 import { bands } from '../lib/siaga'
 import { STATUS_HEX } from '../lib/statusTokens'
+import { useI18n } from '../i18n/useI18n'
 import type { ResolvedTheme } from '../hooks/useTheme'
 import type { HistoryResponse, ThresholdsCm } from '../types/upstream'
 
@@ -24,27 +25,21 @@ type Props = {
   theme: ResolvedTheme
 }
 
-const TIME_FORMATTER = new Intl.DateTimeFormat('id-ID', {
-  timeZone: 'Asia/Jakarta',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-})
+const FORMATTERS = new Map<string, { time: Intl.DateTimeFormat; day: Intl.DateTimeFormat; full: Intl.DateTimeFormat }>()
 
-const DAY_FORMATTER = new Intl.DateTimeFormat('id-ID', {
-  timeZone: 'Asia/Jakarta',
-  day: '2-digit',
-  month: 'short',
-})
-
-const DATE_FORMATTER = new Intl.DateTimeFormat('id-ID', {
-  timeZone: 'Asia/Jakarta',
-  day: '2-digit',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-})
+function formatters(tag: string) {
+  let f = FORMATTERS.get(tag)
+  if (!f) {
+    const tz = 'Asia/Jakarta'
+    f = {
+      time: new Intl.DateTimeFormat(tag, { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }),
+      day: new Intl.DateTimeFormat(tag, { timeZone: tz, day: '2-digit', month: 'short' }),
+      full: new Intl.DateTimeFormat(tag, { timeZone: tz, day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }),
+    }
+    FORMATTERS.set(tag, f)
+  }
+  return f
+}
 
 const MULTI_DAY_THRESHOLD_MS = 36 * 60 * 60 * 1000
 
@@ -79,6 +74,8 @@ const DARK: ChartTheme = {
 }
 
 export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
+  const { t: msg, tag } = useI18n()
+  const fmt = formatters(tag)
   const t = theme === 'dark' ? DARK : LIGHT
   const thresholds = data.thresholdsCm ?? fallbackThresholdsCm
 
@@ -97,7 +94,7 @@ export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
   if (series.length === 0) {
     return (
       <div className="flex aspect-[4/3] items-center justify-center rounded-xl bg-surface text-sm text-ink-3 sm:aspect-[16/9]">
-        Belum ada data
+        {msg.chartEmpty}
       </div>
     )
   }
@@ -107,7 +104,7 @@ export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
   const spanMs = series[series.length - 1].t - series[0].t
   const isMultiDay = spanMs >= MULTI_DAY_THRESHOLD_MS
   const xTickFormatter = (v: number) =>
-    isMultiDay ? DAY_FORMATTER.format(new Date(v)) : TIME_FORMATTER.format(new Date(v))
+    isMultiDay ? fmt.day.format(new Date(v)) : fmt.time.format(new Date(v))
 
   // Where the peak sits along the x-axis, so its direct label can dodge the
   // plot edge rather than being cropped by it.
@@ -198,7 +195,7 @@ export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
               }}
               labelStyle={{ color: t.tooltipMuted, fontSize: 11, marginBottom: 2 }}
               itemStyle={{ color: t.tooltipText, fontSize: 14, fontWeight: 600 }}
-              labelFormatter={(label) => DATE_FORMATTER.format(new Date(Number(label)))}
+              labelFormatter={(label) => fmt.full.format(new Date(Number(label)))}
               formatter={(value) => [`${Math.round(Number(value))} cm`, ''] as [string, string]}
             />
 
@@ -221,7 +218,7 @@ export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
                 strokeWidth={2}
                 ifOverflow="extendDomain"
                 label={{
-                  value: `puncak ${Math.round(peak.cm)}`,
+                  value: msg.peakLabel(Math.round(peak.cm)),
                   // A peak near either end would have its label clipped by the
                   // plot edge, so anchor it inward on the crowded side.
                   position: peakNearEnd === 'right' ? 'left' : peakNearEnd === 'left' ? 'right' : 'top',
@@ -236,7 +233,7 @@ export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
       </div>
       {droppedAnomalies > 0 && (
         <figcaption className="px-2 pt-1 pb-1 text-[11px] text-ink-3">
-          {droppedAnomalies} bacaan anomali (negatif) disembunyikan.
+          {msg.anomaliesHidden(droppedAnomalies)}
         </figcaption>
       )}
     </figure>

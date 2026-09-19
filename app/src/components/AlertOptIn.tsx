@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/useI18n'
 import type { NotificationPermissionState } from '../hooks/useTransitionAlert'
 
 type Props = {
@@ -11,16 +12,15 @@ function Note({ children }: { children: React.ReactNode }) {
 }
 
 export function AlertOptIn({ permission, onRequest, onTest }: Props) {
+  const { t } = useI18n()
+
   if (permission === 'unsupported') {
-    return <Note>Peramban ini tidak mendukung notifikasi. Grafik tetap diperbarui selama halaman terbuka.</Note>
+    return <Note>{t.alertsUnsupported}</Note>
   }
 
   if (permission === 'denied') {
     return (
-      <Note>
-        Notifikasi diblokir. Aktifkan kembali di pengaturan situs peramban untuk menerima peringatan
-        kenaikan siaga.
-      </Note>
+      <Note>{t.alertsBlocked}</Note>
     )
   }
 
@@ -30,10 +30,10 @@ export function AlertOptIn({ permission, onRequest, onTest }: Props) {
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 text-sm font-medium">
             <span aria-hidden="true" className="size-1.5 rounded-full bg-good" />
-            Peringatan aktif
+            {t.alertsOnTitle}
           </p>
           <p className="mt-0.5 text-xs text-ink-3">
-            Notifikasi dan nada akan berbunyi saat air naik ke band yang lebih tinggi.
+            {t.alertsOnBody}
           </p>
         </div>
         <button
@@ -41,7 +41,7 @@ export function AlertOptIn({ permission, onRequest, onTest }: Props) {
           onClick={onTest}
           className="min-h-9 shrink-0 rounded-lg border border-hairline-strong px-3 text-xs font-medium text-ink-2 hover:bg-sunken hover:text-ink"
         >
-          Tes nada
+          {t.alertsTestChime}
         </button>
       </section>
     )
@@ -49,17 +49,16 @@ export function AlertOptIn({ permission, onRequest, onTest }: Props) {
 
   return (
     <section className="rounded-xl bg-surface px-4 py-3.5">
-      <p className="text-sm font-medium">Aktifkan peringatan dini</p>
+      <p className="text-sm font-medium">{t.alertsOptInTitle}</p>
       <p className="mt-1 text-xs text-ink-3">
-        Notifikasi hanya berbunyi selama halaman ini terbuka. Pasang di layar utama dan biarkan
-        terbuka saat hujan deras.
+        {t.alertsOptInBody}
       </p>
       <button
         type="button"
         onClick={onRequest}
         className="mt-3 min-h-10 rounded-lg bg-ink px-4 text-sm font-medium text-plane hover:opacity-90"
       >
-        Aktifkan peringatan
+        {t.alertsEnable}
       </button>
     </section>
   )

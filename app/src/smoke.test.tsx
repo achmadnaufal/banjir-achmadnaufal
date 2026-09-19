@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
@@ -27,18 +28,52 @@ describe('App smoke', () => {
     expect(screen.getByText('2.80 m')).toBeInTheDocument()
     // 280cm sits in the 250-350 band -> SIAGA per the official legend.
     expect(screen.getByRole('status')).toHaveTextContent('SIAGA')
-    const legend = screen.getByRole('region', { name: /keterangan/i })
+    const legend = screen.getByRole('region', { name: /legend/i })
     expect(legend).toHaveTextContent('> 350 cm')
     expect(legend).toHaveTextContent('BAHAYA')
-    expect(screen.queryByText(/Terjadi kesalahan/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Something went wrong/i)).not.toBeInTheDocument()
   })
 
   it('marks the current band in the legend', async () => {
     render(<App />)
     await screen.findByTestId('hero-level')
-    const legend = screen.getByRole('region', { name: /keterangan/i })
+    const legend = screen.getByRole('region', { name: /legend/i })
     const current = legend.querySelector('[aria-current="true"]')
     expect(current).toHaveTextContent('SIAGA')
     expect(current).toHaveTextContent('250 - 350 cm')
+  })
+
+  it('defaults to English', async () => {
+    render(<App />)
+    await screen.findByTestId('hero-level')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Cinangka Flood Monitor')
+    expect(screen.getByText('24h peak')).toBeInTheDocument()
+    expect(document.documentElement.lang).toBe('en')
+  })
+
+  it('switches to Indonesian and persists the choice', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<App />)
+    await screen.findByTestId('hero-level')
+
+    await user.click(screen.getByRole('button', { name: 'ID' }))
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Monitor Banjir Cinangka')
+    expect(screen.getByText('Puncak 24 jam')).toBeInTheDocument()
+    expect(document.documentElement.lang).toBe('id-ID')
+    expect(localStorage.getItem('banjir:locale')).toBe('id')
+
+    // A fresh mount reads the stored choice back.
+    unmount()
+    render(<App />)
+    await screen.findByTestId('hero-level')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Monitor Banjir Cinangka')
+  })
+
+  it('falls back to English when the stored locale is junk', async () => {
+    localStorage.setItem('banjir:locale', 'klingon')
+    render(<App />)
+    await screen.findByTestId('hero-level')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Cinangka Flood Monitor')
   })
 })

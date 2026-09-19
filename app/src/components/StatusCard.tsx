@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/useI18n'
 import { formatStamp, timeSince, trendArrow } from '../lib/format'
 import { classify, trend, type Trend } from '../lib/siaga'
 import { statusToken } from '../lib/statusTokens'
@@ -20,13 +21,13 @@ const ARROW_CLASS: Record<Trend, string> = {
   flat: 'text-ink-3',
 }
 
-const TREND_LABEL: Record<Trend, string> = {
-  up: 'naik',
-  down: 'turun',
-  flat: 'datar',
-}
-
 export function StatusCard({ snapshot, isStale, now, stats }: Props) {
+  const { t, tag } = useI18n()
+  const trendLabel: Record<Trend, string> = {
+    up: t.trendRising,
+    down: t.trendFalling,
+    flat: t.trendFlat,
+  }
   const level = classify(snapshot.levelCm, snapshot.thresholdsCm)
   const token = statusToken(level)
   const direction = trend(snapshot.prevLevelCm, snapshot.levelCm)
@@ -39,7 +40,7 @@ export function StatusCard({ snapshot, isStale, now, stats }: Props) {
   const metres = (cm / 100).toFixed(2)
 
   return (
-    <section aria-label="Status terkini" className="overflow-hidden rounded-xl bg-surface">
+    <section aria-label={t.statusRegion} className="overflow-hidden rounded-xl bg-surface">
       {/* The rail restates severity at full width, so the page itself changes
           character with the band rather than only a small chip doing so. */}
       <div className="h-1 w-full" style={{ background: token.hex }} />
@@ -48,10 +49,10 @@ export function StatusCard({ snapshot, isStale, now, stats }: Props) {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <SiagaBadge level={level} size="lg" />
           {isStale && (
-            <span className="label text-ink-2">data tertunda</span>
+            <span className="label text-ink-2">{t.staleData}</span>
           )}
           <span className="label ml-auto shrink-0">
-            {timeSince(snapshot.observedAt, now)}
+            {timeSince(snapshot.observedAt, now, tag, t.justNow)}
           </span>
         </div>
 
@@ -68,20 +69,20 @@ export function StatusCard({ snapshot, isStale, now, stats }: Props) {
           <span>{metres} m</span>
           <span aria-hidden="true" className="text-hairline-strong">·</span>
           {delta === null ? (
-            <span className="text-ink-3">belum ada bacaan sebelumnya</span>
+            <span className="text-ink-3">{t.noPreviousReading}</span>
           ) : (
             <span>
               <span aria-hidden="true" className={`mr-1 font-semibold ${ARROW_CLASS[direction]}`}>
                 {trendArrow(direction)}
               </span>
-              <span className="sr-only">{TREND_LABEL[direction]} </span>
+              <span className="sr-only">{trendLabel[direction]} </span>
               {delta > 0 ? '+' : ''}
-              {delta.toFixed(1)} cm dari bacaan sebelumnya
+              {delta.toFixed(1)} cm {t.vsPrevious}
             </span>
           )}
         </div>
 
-        <p className="mt-1 text-xs text-ink-3">Terbaca {formatStamp(snapshot.observedAt)}</p>
+        <p className="mt-1 text-xs text-ink-3">{t.observedAt(formatStamp(snapshot.observedAt, tag))}</p>
       </div>
 
       {stats && (

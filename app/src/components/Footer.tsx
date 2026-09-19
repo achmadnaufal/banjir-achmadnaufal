@@ -1,19 +1,32 @@
+import { useI18n } from '../i18n/useI18n'
+
 type Props = {
   lastFetchedAt: Date | null
 }
 
-const POLL_TIME_FORMATTER = new Intl.DateTimeFormat('id-ID', {
-  timeZone: 'Asia/Jakarta',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-})
+const POLL_CACHE = new Map<string, Intl.DateTimeFormat>()
+
+function pollTime(tag: string): Intl.DateTimeFormat {
+  let f = POLL_CACHE.get(tag)
+  if (!f) {
+    f = new Intl.DateTimeFormat(tag, {
+      timeZone: 'Asia/Jakarta',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+    POLL_CACHE.set(tag, f)
+  }
+  return f
+}
 
 export function Footer({ lastFetchedAt }: Props) {
+  const { t, tag } = useI18n()
+
   return (
     <footer className="mt-2 border-t border-hairline px-1 pt-5 pb-8 text-xs text-ink-3">
       <p>
-        Sumber data{' '}
+        {t.footerSource}{' '}
         <a
           className="text-ink-2 underline-offset-4 hover:text-ink hover:underline"
           href="https://poskobanjir.dsdadki.web.id"
@@ -22,12 +35,12 @@ export function Footer({ lastFetchedAt }: Props) {
         >
           poskobanjir.dsdadki.web.id
         </a>{' '}
-        · Dinas SDA DKI Jakarta
+        · {t.footerAgency}
       </p>
       <p className="mt-1">
         {lastFetchedAt
-          ? `Pembaruan terakhir ${POLL_TIME_FORMATTER.format(lastFetchedAt)} WIB · peringatan hanya aktif selama halaman terbuka`
-          : 'Mengambil data terbaru…'}
+          ? `${t.footerLastPoll(pollTime(tag).format(lastFetchedAt))} · ${t.footerAlertsNote}`
+          : t.footerFetching}
       </p>
       <p className="mt-3">
         <a
@@ -45,7 +58,7 @@ export function Footer({ lastFetchedAt }: Props) {
           target="_blank"
           rel="noopener noreferrer"
         >
-          kode sumber
+          {t.footerSourceCode}
         </a>
       </p>
     </footer>

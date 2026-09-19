@@ -7,6 +7,7 @@ import {
   VELOCITY_WINDOW_MS,
   velocityCmPerHour,
 } from '../lib/analytics'
+import { useI18n } from '../i18n/useI18n'
 import { formatDuration, timeSince } from '../lib/format'
 import { siagaMeta, type Trend } from '../lib/siaga'
 import type { HistoryResponse, SnapshotRow } from '../types/upstream'
@@ -44,12 +45,13 @@ function Tile({
     <div className="min-w-0">
       <p className="label">{label}</p>
       <p className="mt-1 truncate text-[17px] leading-tight font-semibold">{value}</p>
-      {meta && <p className="mt-0.5 truncate text-[11px] text-ink-3">{meta}</p>}
+      {meta && <p className="mt-0.5 text-[11px] leading-snug text-ink-3">{meta}</p>}
     </div>
   )
 }
 
 export function StatsRow({ history, snapshot, now }: Props) {
+  const { t, tag } = useI18n()
   const cleanPoints = useMemo(() => dropAnomalies(history.points), [history.points])
   const thresholds = history.thresholdsCm ?? snapshot.thresholdsCm
   const peak = useMemo(() => peakInWindow(cleanPoints), [cleanPoints])
@@ -67,28 +69,28 @@ export function StatsRow({ history, snapshot, now }: Props) {
   )
 
   if (cleanPoints.length < 2) {
-    return <p className="text-sm text-ink-3">Mengumpulkan tren 24 jam…</p>
+    return <p className="text-sm text-ink-3">{t.gathering}</p>
   }
 
   const vTrend = rateTrend(velocity)
   const peakDelta = peak === null ? null : Math.round(peak.cm - snapshot.levelCm)
 
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4" aria-label="Ringkasan 24 jam">
+    <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4" aria-label={t.statsRegion}>
       <Tile
-        label="Puncak 24 jam"
+        label={t.peak24h}
         value={peak === null ? '—' : `${Math.round(peak.cm)} cm`}
         meta={
           peak === null
             ? undefined
             : peakDelta === null || peakDelta === 0
-              ? timeSince(peak.at, now)
-              : `${timeSince(peak.at, now)} · ${peakDelta > 0 ? `${peakDelta} cm di atas kini` : `${Math.abs(peakDelta)} cm di bawah kini`}`
+              ? timeSince(peak.at, now, tag, t.justNow)
+              : `${timeSince(peak.at, now, tag, t.justNow)} · ${peakDelta > 0 ? t.cmAboveNow(peakDelta) : t.cmBelowNow(Math.abs(peakDelta))}`
         }
       />
 
       <Tile
-        label="Laju 60 menit"
+        label={t.rate60m}
         value={
           velocity === null ? (
             '—'
@@ -98,22 +100,22 @@ export function StatsRow({ history, snapshot, now }: Props) {
                 {vTrend === 'up' ? '▲' : vTrend === 'down' ? '▼' : '■'}
               </span>
               {velocity > 0 ? '+' : ''}
-              {velocity.toFixed(1)} cm/j
+              {velocity.toFixed(1)} {t.rateUnit}
             </>
           )
         }
       />
 
       <Tile
-        label={`Di ${siagaMeta(tenure.level).label}`}
-        value={`${tenure.isWindowFloor ? '≥ ' : ''}${formatDuration(tenure.sinceMs)}`}
+        label={t.inBand(siagaMeta(tenure.level).label)}
+        value={`${tenure.isWindowFloor ? '≥ ' : ''}${formatDuration(tenure.sinceMs, t)}`}
       />
 
       <Tile
-        label={eta === null ? 'Perkiraan' : eta.direction === 'rising' ? 'Perkiraan naik' : 'Perkiraan turun'}
+        label={eta === null ? t.forecast : eta.direction === 'rising' ? t.etaRising : t.etaFalling}
         value={
           eta === null ? (
-            <span className="text-ink-3">stabil</span>
+            <span className="text-ink-3">{t.steady}</span>
           ) : (
             <>
               <span
@@ -122,12 +124,12 @@ export function StatsRow({ history, snapshot, now }: Props) {
               >
                 {eta.direction === 'rising' ? '↗' : '↘'}
               </span>
-              {formatDuration(eta.etaMs)}
+              {formatDuration(eta.etaMs, t)}
             </>
           )
         }
         meta={
-          eta === null ? 'tak ada perubahan band' : `ke ${siagaMeta(eta.targetLevel).label} · laju kini`
+          eta === null ? t.noBandChange : t.etaTo(siagaMeta(eta.targetLevel).label)
         }
       />
     </div>

@@ -1,12 +1,14 @@
+import { useI18n } from '../i18n/useI18n'
+import type { Messages } from '../i18n/messages'
 import type { Range } from '../hooks/useHistory'
 
-const OPTIONS: { value: Range; label: string }[] = [
-  { value: '6h', label: '6j' },
-  { value: '12h', label: '12j' },
-  { value: '24h', label: '24j' },
-  { value: '7d', label: '7h' },
-  { value: '30d', label: '30h' },
-  { value: '60d', label: '60h' },
+const OPTIONS: { value: Range; key: keyof Messages }[] = [
+  { value: '6h', key: 'range6h' },
+  { value: '12h', key: 'range12h' },
+  { value: '24h', key: 'range24h' },
+  { value: '7d', key: 'range7d' },
+  { value: '30d', key: 'range30d' },
+  { value: '60d', key: 'range60d' },
 ]
 
 type Props = {
@@ -15,10 +17,12 @@ type Props = {
 }
 
 export function RangeToggle({ value, onChange }: Props) {
+  const { t } = useI18n()
+
   return (
     <div className="flex items-center gap-2">
       <span className="label shrink-0" id="range-label">
-        Rentang
+        {t.rangeLabel}
       </span>
       <div
         role="group"
@@ -41,7 +45,7 @@ export function RangeToggle({ value, onChange }: Props) {
                   : 'text-ink-3 hover:text-ink-2'
               }`}
             >
-              {opt.label}
+              {t[opt.key] as string}
             </button>
           )
         })}
