@@ -162,19 +162,19 @@ export function SiagaChart({ data, fallbackThresholdsCm, theme }: Props) {
             y={thresholds.siaga3}
             stroke={t.lineSiaga3}
             strokeDasharray="4 4"
-            label={{ value: 'siaga 3', position: 'insideTopRight', fontSize: 10, fill: t.lineSiaga3, dy: -2 }}
+            label={{ value: 'waspada', position: 'insideTopRight', fontSize: 10, fill: t.lineSiaga3, dy: -2 }}
           />
           <ReferenceLine
             y={thresholds.siaga2}
             stroke={t.lineSiaga2}
             strokeDasharray="4 4"
-            label={{ value: 'siaga 2', position: 'insideTopRight', fontSize: 10, fill: t.lineSiaga2, dy: -2 }}
+            label={{ value: 'siaga', position: 'insideTopRight', fontSize: 10, fill: t.lineSiaga2, dy: -2 }}
           />
           <ReferenceLine
             y={thresholds.siaga1}
             stroke={t.lineSiaga1}
             strokeDasharray="4 4"
-            label={{ value: 'siaga 1', position: 'insideTopRight', fontSize: 10, fill: t.lineSiaga1, dy: -2 }}
+            label={{ value: 'bahaya', position: 'insideTopRight', fontSize: 10, fill: t.lineSiaga1, dy: -2 }}
           />
           <Tooltip
             contentStyle={{ background: t.tooltipBg, border: 'none', color: t.tooltipText, fontSize: 12, borderRadius: 8 }}

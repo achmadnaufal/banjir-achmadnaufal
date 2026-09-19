@@ -12,6 +12,7 @@ import { Footer } from './components/Footer'
 import { Map } from './components/Map'
 import { RangeToggle } from './components/RangeToggle'
 import { AboutSection } from './components/AboutSection'
+import { KeteranganLegend } from './components/KeteranganLegend'
 import { SiagaChart } from './components/SiagaChart'
 import { StatusCard } from './components/StatusCard'
 import { ThemeToggle } from './components/ThemeToggle'
@@ -43,6 +44,13 @@ function App() {
       ? null
       : classify(displaySnapshot.levelCm, displaySnapshot.thresholdsCm)
   const currentCm = displaySnapshot?.levelCm ?? null
+
+  // Prefer the thresholds upstream reports for this gate; fall back to the
+  // published KETERANGAN values only until the first successful fetch.
+  const thresholdsCm =
+    displaySnapshot?.thresholdsCm ??
+    history.data?.thresholdsCm ??
+    PESANGGRAHAN.fallbackThresholdsCm
 
   const alert = useTransitionAlert(currentLevel, currentCm)
 
@@ -110,6 +118,8 @@ function App() {
             </div>
           )}
         </section>
+
+        <KeteranganLegend thresholdsCm={thresholdsCm} currentLevel={currentLevel} />
 
         <Map />
 

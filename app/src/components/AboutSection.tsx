@@ -18,20 +18,20 @@ export function AboutSection() {
 
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            Status Siaga
+            Keterangan Status Siaga
           </h3>
           <ul className="mt-1 list-disc space-y-0.5 pl-5">
             <li>
+              <strong>BAHAYA</strong> (Siaga 1) — di atas 350 cm
+            </li>
+            <li>
+              <strong>SIAGA</strong> (Siaga 2) — 250–350 cm
+            </li>
+            <li>
+              <strong>WASPADA</strong> (Siaga 3) — 150–250 cm
+            </li>
+            <li>
               <strong>Normal</strong> — di bawah 150 cm
-            </li>
-            <li>
-              <strong>Siaga 3 (Waspada)</strong> — 150–250 cm
-            </li>
-            <li>
-              <strong>Siaga 2 (Siaga)</strong> — 250–350 cm
-            </li>
-            <li>
-              <strong>Siaga 1 (Awas)</strong> — di atas 350 cm
             </li>
           </ul>
         </div>

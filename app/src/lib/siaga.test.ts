@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   RANK,
+  bands,
   classify,
   detectTransition,
   siagaMeta,
@@ -34,17 +35,63 @@ describe('classify', () => {
 })
 
 describe('siagaMeta', () => {
+  // Labels mirror the official DSDA DKI "KETERANGAN" legend, which names the
+  // bands BAHAYA / SIAGA / WASPADA / Normal rather than Siaga 1 / 2 / 3.
   it('returns red+rank3 for siaga1', () => {
-    expect(siagaMeta('siaga1')).toEqual({ label: 'SIAGA 1', tone: 'red', rank: 3 })
+    expect(siagaMeta('siaga1')).toEqual({ label: 'BAHAYA', tone: 'red', rank: 3 })
   })
   it('returns orange+rank2 for siaga2', () => {
-    expect(siagaMeta('siaga2')).toEqual({ label: 'SIAGA 2', tone: 'orange', rank: 2 })
+    expect(siagaMeta('siaga2')).toEqual({ label: 'SIAGA', tone: 'orange', rank: 2 })
   })
   it('returns yellow+rank1 for siaga3', () => {
-    expect(siagaMeta('siaga3')).toEqual({ label: 'SIAGA 3', tone: 'yellow', rank: 1 })
+    expect(siagaMeta('siaga3')).toEqual({ label: 'WASPADA', tone: 'yellow', rank: 1 })
   })
   it('returns green+rank0 for normal', () => {
     expect(siagaMeta('normal')).toEqual({ label: 'NORMAL', tone: 'green', rank: 0 })
+  })
+})
+
+describe('bands', () => {
+  it('lists the four legend rows highest-first', () => {
+    expect(bands(T)).toEqual([
+      { level: 'siaga1', label: 'BAHAYA', tone: 'red', rank: 3, rangeText: '> 350 cm' },
+      { level: 'siaga2', label: 'SIAGA', tone: 'orange', rank: 2, rangeText: '250 - 350 cm' },
+      { level: 'siaga3', label: 'WASPADA', tone: 'yellow', rank: 1, rangeText: '150 - 250 cm' },
+      { level: 'normal', label: 'NORMAL', tone: 'green', rank: 0, rangeText: '< 150 cm' },
+    ])
+  })
+
+  it('follows upstream thresholds rather than hardcoding the fallback', () => {
+    const custom: ThresholdsCm = { siaga1: 400, siaga2: 300, siaga3: 200 }
+    expect(bands(custom).map((b) => b.rangeText)).toEqual([
+      '> 400 cm',
+      '300 - 400 cm',
+      '200 - 300 cm',
+      '< 200 cm',
+    ])
+  })
+
+  it('rounds fractional thresholds from the mm-to-cm conversion', () => {
+    const fractional: ThresholdsCm = { siaga1: 350.4, siaga2: 249.5, siaga3: 150.6 }
+    expect(bands(fractional).map((b) => b.rangeText)).toEqual([
+      '> 350 cm',
+      '250 - 350 cm',
+      '151 - 250 cm',
+      '< 151 cm',
+    ])
+  })
+
+  it('classifies a level into the band it is listed under', () => {
+    for (const cm of [0, 150, 151, 250, 251, 350, 351, 900]) {
+      const level = classify(cm, T)
+      expect(bands(T).some((b) => b.level === level)).toBe(true)
+    }
+  })
+
+  it('does not mutate the thresholds it is given', () => {
+    const input: ThresholdsCm = { siaga1: 350, siaga2: 250, siaga3: 150 }
+    bands(input)
+    expect(input).toEqual({ siaga1: 350, siaga2: 250, siaga3: 150 })
   })
 })
 
