@@ -46,7 +46,7 @@ describe('App smoke', () => {
   it('defaults to English', async () => {
     render(<App />)
     await screen.findByTestId('hero-level')
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Cinangka Flood Monitor')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Flood Monitor')
     expect(screen.getByText('24h peak')).toBeInTheDocument()
     expect(document.documentElement.lang).toBe('en')
   })
@@ -58,7 +58,7 @@ describe('App smoke', () => {
 
     await user.click(screen.getByRole('button', { name: 'ID' }))
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Monitor Banjir Cinangka')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Monitor Banjir')
     expect(screen.getByText('Puncak 24 jam')).toBeInTheDocument()
     expect(document.documentElement.lang).toBe('id-ID')
     expect(localStorage.getItem('banjir:locale')).toBe('id')
@@ -67,13 +67,24 @@ describe('App smoke', () => {
     unmount()
     render(<App />)
     await screen.findByTestId('hero-level')
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Monitor Banjir Cinangka')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Monitor Banjir')
+  })
+
+  it('shows the complex name in full and unchanged in both languages', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByTestId('hero-level')
+    expect(screen.getByText('Cinangka Paradisa Residence')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'ID' }))
+    // A proper noun is not translated and not abbreviated to "Paradisa Residence".
+    expect(screen.getByText('Cinangka Paradisa Residence')).toBeInTheDocument()
   })
 
   it('falls back to English when the stored locale is junk', async () => {
     localStorage.setItem('banjir:locale', 'klingon')
     render(<App />)
     await screen.findByTestId('hero-level')
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Cinangka Flood Monitor')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Flood Monitor')
   })
 })

@@ -11,7 +11,7 @@ import type { Locale } from './locale'
  */
 export type Messages = {
   appTitle: string
-  appSubtitle: (river: string) => string
+  appRiver: (river: string) => string
   themeSystem: string
   themeLight: string
   themeDark: string
@@ -109,8 +109,8 @@ export type Messages = {
 }
 
 const en: Messages = {
-  appTitle: 'Cinangka Flood Monitor',
-  appSubtitle: (river) => `${river} River\u00a0· Paradisa Residence`,
+  appTitle: 'Flood Monitor',
+  appRiver: (river) => `${river} River`,
   themeSystem: 'Theme: follow system',
   themeLight: 'Theme: light',
   themeDark: 'Theme: dark',
@@ -220,8 +220,8 @@ const en: Messages = {
 }
 
 const id: Messages = {
-  appTitle: 'Monitor Banjir Cinangka',
-  appSubtitle: (river) => `Sungai ${river}\u00a0· Paradisa Residence`,
+  appTitle: 'Monitor Banjir',
+  appRiver: (river) => `Sungai ${river}`,
   themeSystem: 'Tema: ikut sistem',
   themeLight: 'Tema: terang',
   themeDark: 'Tema: gelap',

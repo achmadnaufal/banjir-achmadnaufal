@@ -7,6 +7,9 @@ export const PESANGGRAHAN = {
   fallbackThresholdsCm: { siaga1: 350, siaga2: 250, siaga3: 150 },
 } as const
 
+/** The residential complex this page serves. A proper noun — never translated, never abbreviated. */
+export const COMMUNITY = 'Cinangka Paradisa Residence'
+
 export const SNAPSHOT_URL = 'https://poskobanjir.dsdadki.web.id/xmldata.xml'
 export const HISTORY_BASE = 'https://poskobanjir.dsdadki.web.id/Pages/GenerateDataTinggiAir.aspx'
 

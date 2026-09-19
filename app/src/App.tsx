@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
-import { PESANGGRAHAN, STALE_AFTER_MS } from './config/station'
+import { COMMUNITY, PESANGGRAHAN, STALE_AFTER_MS } from './config/station'
 import { useLatest } from './hooks/useLatest'
 import { useHistory, type Range } from './hooks/useHistory'
 import { useTheme } from './hooks/useTheme'
@@ -93,9 +93,8 @@ function Dashboard() {
           <h1 className="truncate text-[15px] leading-tight font-semibold tracking-[-0.01em]">
             {t.appTitle}
           </h1>
-          <p className="mt-0.5 text-xs text-balance text-ink-3">
-            {t.appSubtitle(PESANGGRAHAN.river)}
-          </p>
+          <p className="mt-0.5 text-xs leading-tight font-medium text-ink-2">{COMMUNITY}</p>
+          <p className="text-[11px] leading-tight text-ink-3">{t.appRiver(PESANGGRAHAN.river)}</p>
         </div>
         <LocaleToggle />
         <ThemeToggle preference={theme.preference} onCycle={theme.cycle} />
