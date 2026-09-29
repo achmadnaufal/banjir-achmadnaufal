@@ -2,18 +2,16 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LocaleProvider } from '../i18n/LocaleProvider'
-import { FORECAST_GRID_COLS, FORECAST_GRID_ROWS } from '../config/forecast'
 import { Map } from './Map'
 
 const HOUR = 3600
-const CELLS = FORECAST_GRID_ROWS * FORECAST_GRID_COLS
 
 /** Open-Meteo multi-location body: rain everywhere, heaviest in hour 3. */
-function forecastBody(nowSec: number) {
+function forecastBody(nowSec: number, locations: number) {
   const start = nowSec - (nowSec % HOUR)
   const time = Array.from({ length: 13 }, (_, i) => start + i * HOUR)
   const precipitation = time.map((_, i) => (i === 3 ? 8 : 1))
-  return Array.from({ length: CELLS }, () => ({ hourly: { time, precipitation } }))
+  return Array.from({ length: locations }, () => ({ hourly: { time, precipitation } }))
 }
 
 function renderMap() {
@@ -32,10 +30,15 @@ describe('Map (rain forecast)', () => {
 
   describe('with a forecast', () => {
     beforeEach(() => {
-      const body = JSON.stringify(forecastBody(Math.floor(Date.now() / 1000)))
+      const nowSec = Math.floor(Date.now() / 1000)
       vi.stubGlobal(
         'fetch',
-        vi.fn(async () => ({ ok: true, status: 200, text: async () => body }) as Response),
+        vi.fn(async (url: string) => {
+          // Answer each grid with as many locations as it asked for.
+          const count = new URL(url).searchParams.get('latitude')!.split(',').length
+          const body = JSON.stringify(forecastBody(nowSec, count))
+          return { ok: true, status: 200, text: async () => body } as Response
+        }),
       )
     })
 
@@ -88,6 +91,24 @@ describe('Map (rain forecast)', () => {
         expect(screen.getByText(name)).toBeInTheDocument()
       }
     })
+  })
+
+  it('reuses a fresh cached forecast instead of fetching again', async () => {
+    const nowSec = Math.floor(Date.now() / 1000)
+    const fetchMock = vi.fn(async (url: string) => {
+      const count = new URL(url).searchParams.get('latitude')!.split(',').length
+      const body = JSON.stringify(forecastBody(nowSec, count))
+      return { ok: true, status: 200, text: async () => body } as Response
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const first = renderMap()
+    await screen.findByRole('slider', { name: 'Forecast hour' })
+    const calls = fetchMock.mock.calls.length
+    first.unmount()
+
+    renderMap()
+    await screen.findByRole('slider', { name: 'Forecast hour' })
+    expect(fetchMock.mock.calls.length).toBe(calls)
   })
 
   it('explains when the forecast cannot load', async () => {

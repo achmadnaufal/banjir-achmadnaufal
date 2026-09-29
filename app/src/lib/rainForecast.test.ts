@@ -3,7 +3,7 @@ import {
   buildForecastUrl,
   buildGrid,
   parseForecast,
-  upstreamMask,
+  sampleField,
   upstreamSummary,
   type RainFrame,
 } from './rainForecast'
@@ -107,40 +107,54 @@ describe('parseForecast', () => {
   })
 })
 
-describe('upstreamMask', () => {
-  it('marks cells south of the gate', () => {
-    const grid = buildGrid(BOUNDS, 2, 1) // centres at -6.3 and -6.5
-    expect(upstreamMask(grid, -6.4)).toEqual([false, true])
+describe('sampleField', () => {
+  // 1 row × 2 cols over lng 106.6–107.0: centres at 106.7 and 106.9.
+  const grid = buildGrid(BOUNDS, 1, 2)
+
+  it('interpolates between cell centres', () => {
+    expect(sampleField(grid, [0, 8], -6.4, 106.8)).toBeCloseTo(4)
+    expect(sampleField(grid, [0, 8], -6.4, 106.75)).toBeCloseTo(2)
+  })
+
+  it('clamps outside the outer centres', () => {
+    expect(sampleField(grid, [0, 8], -6.4, 106.61)).toBeCloseTo(0)
+    expect(sampleField(grid, [0, 8], -6.4, 106.99)).toBeCloseTo(8)
   })
 })
 
 describe('upstreamSummary', () => {
+  const grid = buildGrid(BOUNDS, 1, 2)
   const frame = (hour: number, mm: number[]): RainFrame => ({
     startsAt: new Date(hour * HOUR * 1000),
     endsAt: new Date((hour + 1) * HOUR * 1000),
     mm,
   })
-  const mask = [false, true, true]
+  // Two sample points on the eastern cell's centre.
+  const points = [
+    { lat: -6.4, lng: 106.9 },
+    { lat: -6.4, lng: 106.9 },
+  ]
 
   it('sums the upstream-average rain and finds the wettest hour', () => {
-    const summary = upstreamSummary([frame(0, [50, 1, 3]), frame(1, [0, 4, 6])], mask)
+    const summary = upstreamSummary([frame(0, [50, 2]), frame(1, [0, 5])], grid, points)
     expect(summary.totalMm).toBeCloseTo(7)
     expect(summary.peak).toEqual({ frameIndex: 1, mm: 5 })
   })
 
-  it('ignores missing cells when averaging', () => {
-    const summary = upstreamSummary([frame(0, [0, Number.NaN, 4])], mask)
+  it('ignores points with no value when averaging', () => {
+    const mixed = [{ lat: -6.4, lng: 106.7 }, { lat: -6.4, lng: 106.9 }]
+    const summary = upstreamSummary([frame(0, [Number.NaN, 4])], grid, mixed)
     expect(summary.totalMm).toBeCloseTo(4)
   })
 
   it('reports no peak when nothing falls', () => {
-    const summary = upstreamSummary([frame(0, [5, 0, 0])], mask)
+    const summary = upstreamSummary([frame(0, [5, 0])], grid, points)
     expect(summary.totalMm).toBe(0)
     expect(summary.peak).toBeNull()
   })
 
-  it('handles an empty mask or no frames', () => {
-    expect(upstreamSummary([frame(0, [1, 1, 1])], [false, false, false]).totalMm).toBe(0)
-    expect(upstreamSummary([], mask)).toEqual({ totalMm: 0, peak: null })
+  it('handles no points or no frames', () => {
+    expect(upstreamSummary([frame(0, [1, 1])], grid, []).totalMm).toBe(0)
+    expect(upstreamSummary([], grid, points)).toEqual({ totalMm: 0, peak: null })
   })
 })

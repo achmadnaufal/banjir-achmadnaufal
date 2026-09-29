@@ -1,5 +1,6 @@
 import { OPEN_METEO_URL, type LatLngBounds } from '../config/forecast'
 import { UpstreamError } from '../types/upstream'
+import { bilinear } from './rainImage'
 
 export type GridPoint = { lat: number; lng: number }
 
@@ -126,19 +127,31 @@ export function parseForecast(
     }))
 }
 
-export function upstreamMask(grid: RainGrid, gateLat: number): boolean[] {
-  return grid.points.map((p) => p.lat < gateLat)
+/** Forecast value at any lat/lng inside the grid, interpolated between cells. */
+export function sampleField(grid: RainGrid, mm: readonly number[], lat: number, lng: number): number {
+  const { bounds, rows, cols } = grid
+  const row = ((bounds.north - lat) / (bounds.north - bounds.south)) * rows - 0.5
+  const col = ((lng - bounds.west) / (bounds.east - bounds.west)) * cols - 0.5
+  return bilinear(mm, rows, cols, row, col)
 }
 
-function upstreamMean(mm: readonly number[], mask: readonly boolean[]): number {
-  const values = mm.filter((v, i) => mask[i] && Number.isFinite(v))
+function areaMean(grid: RainGrid, mm: readonly number[], points: readonly GridPoint[]): number {
+  const values = points.map((p) => sampleField(grid, mm, p.lat, p.lng)).filter(Number.isFinite)
   if (values.length === 0) return 0
   return values.reduce((sum, v) => sum + v, 0) / values.length
 }
 
-/** Area-average rain over the upstream cells: total and wettest hour. */
-export function upstreamSummary(frames: readonly RainFrame[], mask: readonly boolean[]): UpstreamSummary {
-  const perFrame = frames.map((f) => upstreamMean(f.mm, mask))
+/**
+ * Area-average rain over the upstream sample points: total and wettest hour.
+ * Sampling the field (rather than counting whole cells) keeps the catchment
+ * number meaningful when the map grid is coarser than the catchment itself.
+ */
+export function upstreamSummary(
+  frames: readonly RainFrame[],
+  grid: RainGrid,
+  points: readonly GridPoint[],
+): UpstreamSummary {
+  const perFrame = frames.map((f) => areaMean(grid, f.mm, points))
   const totalMm = perFrame.reduce((sum, v) => sum + v, 0)
   const peak = perFrame.reduce<UpstreamSummary['peak']>(
     (best, mm, frameIndex) => (mm > 0 && (best === null || mm > best.mm) ? { frameIndex, mm } : best),

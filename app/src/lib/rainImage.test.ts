@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { lerpFrames, renderRainPixels, upsample } from './rainImage'
+import { gaussianBlur, lerpFrames, renderRainPixels, upsample } from './rainImage'
 import { RAIN_STOPS } from './rainColor'
 
 describe('lerpFrames', () => {
@@ -44,5 +44,32 @@ describe('renderRainPixels', () => {
     expect(px).toHaveLength(16)
     expect(Array.from(px.slice(0, 4))).toEqual([0, 0, 0, 0])
     expect(Array.from(px.slice(12, 16))).toEqual([...RAIN_STOPS[RAIN_STOPS.length - 1].rgba])
+  })
+})
+
+describe('gaussianBlur', () => {
+  it('leaves a uniform field unchanged', () => {
+    gaussianBlur(new Array(25).fill(4), 5, 5, 1.5).forEach((v) => expect(v).toBeCloseTo(4))
+  })
+
+  it('spreads a spike symmetrically and keeps its mass away from the edges', () => {
+    const field = new Array(81).fill(0)
+    field[40] = 81 // centre of 9×9
+    const out = gaussianBlur(field, 9, 9, 1)
+    expect(out[40]).toBeLessThan(81)
+    expect(out[39]).toBeCloseTo(out[41])
+    expect(out[31]).toBeCloseTo(out[49])
+    expect(out.reduce((a, b) => a + b, 0)).toBeCloseTo(81, 0)
+  })
+
+  it('ignores missing pixels instead of spreading NaN', () => {
+    const out = gaussianBlur([Number.NaN, 2, 2], 3, 1, 1)
+    expect(out[0]).toBeCloseTo(2)
+    expect(out[1]).toBeCloseTo(2)
+    expect(gaussianBlur([Number.NaN], 1, 1, 1)[0]).toBeNaN()
+  })
+
+  it('is a no-op for a zero radius', () => {
+    expect(gaussianBlur([1, 5, 9], 3, 1, 0)).toEqual([1, 5, 9])
   })
 })

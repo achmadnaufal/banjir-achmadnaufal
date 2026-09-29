@@ -1,24 +1,31 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { PESANGGRAHAN } from '../config/station'
-import { UPSTREAM_OF_LAT } from '../config/forecast'
-import { RAIN_GRID, useRainForecast } from '../hooks/useRainForecast'
+import { UPSTREAM_BOUNDS, UPSTREAM_SAMPLE_COLS, UPSTREAM_SAMPLE_ROWS } from '../config/forecast'
+import { DETAIL_GRID, REGION_GRID, useRainForecast } from '../hooks/useRainForecast'
 import { useRainPlayback, type RainPlayback } from '../hooks/useRainPlayback'
 import type { ResolvedTheme } from '../hooks/useTheme'
 import { formatClock } from '../lib/format'
 import { RAIN_STOPS } from '../lib/rainColor'
-import { upstreamMask, upstreamSummary, type RainFrame } from '../lib/rainForecast'
+import { alignFrames } from '../lib/rainComposite'
+import { buildGrid, upstreamSummary, type RainFrame, type RainGrid } from '../lib/rainForecast'
 
 // Leaflet is the second-heaviest dependency after Recharts and sits at the
 // bottom of the page — keep it out of the first paint, like the chart.
 const RainMapCanvas = lazy(() => import('./RainMapCanvas'))
 
 const GOOGLE_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${PESANGGRAHAN.lat},${PESANGGRAHAN.lng}`
-const UPSTREAM_MASK = upstreamMask(RAIN_GRID, UPSTREAM_OF_LAT)
+const UPSTREAM_POINTS = buildGrid(UPSTREAM_BOUNDS, UPSTREAM_SAMPLE_ROWS, UPSTREAM_SAMPLE_COLS).points
 
-// Skip the transparent fade-in stop; the bar shows the visible ramp.
-const LEGEND_GRADIENT = `linear-gradient(to right, ${RAIN_STOPS.slice(1)
-  .map(({ rgba: [r, g, b] }) => `rgb(${r} ${g} ${b})`)
+/**
+ * Where each stop sits on the legend bar. The four classes get equal
+ * quarters — light up to 5 mm/h, moderate to 10, heavy to 20, extreme beyond —
+ * so the labels line up under their colours instead of bunching to one side.
+ */
+const LEGEND_POSITION: Record<number, number> = { 0.5: 0, 2: 12, 5: 25, 10: 50, 20: 75, 40: 100 }
+
+const LEGEND_GRADIENT = `linear-gradient(to right, ${RAIN_STOPS.filter((s) => s.mm in LEGEND_POSITION)
+  .map(({ mm, rgba: [r, g, b] }) => `rgb(${r} ${g} ${b}) ${LEGEND_POSITION[mm]}%`)
   .join(', ')})`
 
 const HOUR_MS = 60 * 60 * 1000
@@ -48,14 +55,14 @@ function useInView<T extends Element>() {
 }
 
 /** Wall-clock time at a fractional frame position, snapped to 10 minutes. */
-function timeAt(frames: readonly RainFrame[], position: number): Date {
+function timeAt(frames: readonly { startsAt: Date }[], position: number): Date {
   const ms = frames[0].startsAt.getTime() + position * HOUR_MS
   return new Date(Math.round(ms / LABEL_STEP_MS) * LABEL_STEP_MS)
 }
 
-function UpstreamLine({ frames }: { frames: readonly RainFrame[] }) {
+function UpstreamLine({ frames, grid }: { frames: readonly RainFrame[]; grid: RainGrid }) {
   const { t, tag } = useI18n()
-  const summary = useMemo(() => upstreamSummary(frames, UPSTREAM_MASK), [frames])
+  const summary = useMemo(() => upstreamSummary(frames, grid, UPSTREAM_POINTS), [frames, grid])
   if (summary.totalMm < 0.1) {
     return <p className="text-sm text-ink-2">{t.rainUpstreamDry}</p>
   }
@@ -73,7 +80,7 @@ function UpstreamLine({ frames }: { frames: readonly RainFrame[] }) {
   )
 }
 
-function Controls({ frames, playback }: { frames: readonly RainFrame[]; playback: RainPlayback }) {
+function Controls({ frames, playback }: { frames: readonly { startsAt: Date }[]; playback: RainPlayback }) {
   const { t, tag } = useI18n()
   const label = t.rainFrame(formatClock(timeAt(frames, playback.position), tag))
   return (
@@ -104,12 +111,10 @@ function Controls({ frames, playback }: { frames: readonly RainFrame[]; playback
 
 function Legend() {
   const { t } = useI18n()
-  // Column widths match where the BMKG class breaks (5, 10, 20 mm/h) fall on
-  // the evenly spaced gradient stops above.
   return (
     <div className="space-y-1 text-[11px] text-ink-3">
       <div className="h-1.5 rounded-full" style={{ background: LEGEND_GRADIENT }} />
-      <div className="grid grid-cols-[2fr_1fr_1fr_1fr]">
+      <div className="grid grid-cols-4 text-center">
         {t.rainLegendClasses.map((name) => (
           <span key={name}>{name}</span>
         ))}
@@ -120,8 +125,16 @@ function Legend() {
 
 export function Map({ theme }: { theme: ResolvedTheme }) {
   const { t } = useI18n()
-  const forecast = useRainForecast()
-  const frames = forecast.frames ?? []
+  const region = useRainForecast('banjir:rain:region', REGION_GRID)
+  const detail = useRainForecast('banjir:rain:detail', DETAIL_GRID)
+  const frames = useMemo(() => alignFrames(region.frames, detail.frames), [region.frames, detail.frames])
+  // The catchment sits inside the detail grid; use it when it loaded.
+  const upstream = detail.frames
+    ? { frames: detail.frames, grid: DETAIL_GRID }
+    : region.frames
+      ? { frames: region.frames, grid: REGION_GRID }
+      : null
+  const error = region.error ?? detail.error
   const { ref: sectionRef, inView } = useInView<HTMLElement>()
   const playback = useRainPlayback(frames.length, inView)
 
@@ -144,7 +157,8 @@ export function Map({ theme }: { theme: ResolvedTheme }) {
 
       <Suspense fallback={<MapPlaceholder>{t.rainLoading}</MapPlaceholder>}>
         <RainMapCanvas
-          grid={RAIN_GRID}
+          regionGrid={REGION_GRID}
+          detailGrid={DETAIL_GRID}
           frames={frames}
           position={playback.position}
           theme={theme}
@@ -153,14 +167,14 @@ export function Map({ theme }: { theme: ResolvedTheme }) {
       </Suspense>
 
       <div className="space-y-3 px-4 py-3">
-        {forecast.error && frames.length === 0 ? (
-          <p className="text-sm text-ink-3">{t.rainFailed(forecast.error.message)}</p>
+        {error && frames.length === 0 ? (
+          <p className="text-sm text-ink-3">{t.rainFailed(error.message)}</p>
         ) : frames.length === 0 ? (
           <p className="text-sm text-ink-3">{t.rainLoading}</p>
         ) : (
           <>
             <Controls frames={frames} playback={playback} />
-            <UpstreamLine frames={frames} />
+            {upstream && <UpstreamLine frames={upstream.frames} grid={upstream.grid} />}
           </>
         )}
         <Legend />
