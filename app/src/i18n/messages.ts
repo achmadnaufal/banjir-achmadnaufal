@@ -80,6 +80,20 @@ export type Messages = {
   mapRegion: string
   mapHeading: string
   mapOpen: string
+  rainHeading: string
+  rainSource: string
+  rainLoading: string
+  rainFailed: (reason: string) => string
+  rainPlay: string
+  rainPause: string
+  rainSlider: string
+  rainFrame: (from: string, to: string) => string
+  rainUpstreamTotal: (mm: string) => string
+  rainUpstreamPeak: (from: string, mm: string) => string
+  rainUpstreamDry: string
+  rainLegendLight: string
+  rainLegendHeavy: string
+  rainGate: string
 
   loadFailedTitle: string
   retry: string
@@ -188,6 +202,20 @@ const en: Messages = {
   mapRegion: 'Station location',
   mapHeading: 'Monitoring post',
   mapOpen: 'Open in maps →',
+  rainHeading: 'Rain forecast · next 12 h',
+  rainSource: 'Weather-model forecast from Open-Meteo, not radar. Shaded area is upstream of the gate.',
+  rainLoading: 'Loading rain forecast…',
+  rainFailed: (reason) => `Rain forecast unavailable: ${reason}`,
+  rainPlay: 'Play',
+  rainPause: 'Pause',
+  rainSlider: 'Forecast hour',
+  rainFrame: (from, to) => `${from}–${to} WIB`,
+  rainUpstreamTotal: (mm) => `Upstream: ${mm} mm expected in the next 12 h`,
+  rainUpstreamPeak: (from, mm) => `heaviest around ${from} (${mm} mm/h)`,
+  rainUpstreamDry: 'No rain expected upstream in the next 12 h',
+  rainLegendLight: 'Light',
+  rainLegendHeavy: 'Heavy',
+  rainGate: 'Water gate',
 
   loadFailedTitle: 'Could not load the latest reading',
   retry: 'Try again',
@@ -293,6 +321,20 @@ const id: Messages = {
   mapRegion: 'Lokasi pos pantau',
   mapHeading: 'Pos pantau',
   mapOpen: 'Buka di peta →',
+  rainHeading: 'Prakiraan hujan · 12 jam ke depan',
+  rainSource: 'Prakiraan model cuaca dari Open-Meteo, bukan radar. Area berarsir adalah hulu pintu air.',
+  rainLoading: 'Memuat prakiraan hujan…',
+  rainFailed: (reason) => `Prakiraan hujan tidak tersedia: ${reason}`,
+  rainPlay: 'Putar',
+  rainPause: 'Jeda',
+  rainSlider: 'Jam prakiraan',
+  rainFrame: (from, to) => `${from}–${to} WIB`,
+  rainUpstreamTotal: (mm) => `Hulu: diperkirakan ${mm} mm dalam 12 jam ke depan`,
+  rainUpstreamPeak: (from, mm) => `paling deras sekitar ${from} (${mm} mm/jam)`,
+  rainUpstreamDry: 'Tidak ada hujan di hulu dalam 12 jam ke depan',
+  rainLegendLight: 'Ringan',
+  rainLegendHeavy: 'Lebat',
+  rainGate: 'Pintu air',
 
   loadFailedTitle: 'Gagal memuat bacaan terbaru',
   retry: 'Coba lagi',

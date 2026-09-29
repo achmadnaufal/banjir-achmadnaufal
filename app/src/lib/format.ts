@@ -66,6 +66,16 @@ export function formatStamp(d: Date, tag: string): string {
   return `${day} ${month} ${year}, ${hour}:${minute} WIB`
 }
 
+/**
+ * HH:MM in Jakarta time. Built from parts like `formatStamp`, so both
+ * locales use a colon (id-ID would otherwise print 14.00).
+ */
+export function formatClock(d: Date, tag: string): string {
+  const parts = stampFormatter(tag).formatToParts(d)
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? ''
+  return `${get('hour')}:${get('minute')}`
+}
+
 export function trendArrow(t: Trend): '▲' | '▼' | '■' {
   if (t === 'up') return '▲'
   if (t === 'down') return '▼'

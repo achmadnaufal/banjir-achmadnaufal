@@ -172,7 +172,7 @@ function Dashboard() {
           onTest={alert.testChime}
         />
 
-        <Map />
+        <Map theme={theme.resolved} />
 
         <AboutSection thresholdsCm={thresholdsCm} />
       </main>

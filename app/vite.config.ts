@@ -5,6 +5,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 const SNAPSHOT_PATTERN = /^https:\/\/poskobanjir\.dsdadki\.web\.id\/xmldata\.xml/
 const HISTORY_PATTERN = /^https:\/\/poskobanjir\.dsdadki\.web\.id\/Pages\/GenerateDataTinggiAir\.aspx/
+const FORECAST_PATTERN = /^https:\/\/api\.open-meteo\.com\/v1\/forecast/
+const BASEMAP_PATTERN = /^https:\/\/tile\.openstreetmap\.org\//
 
 export default defineConfig({
   plugins: [
@@ -46,6 +48,25 @@ export default defineConfig({
               cacheName: 'upstream-history',
               networkTimeoutSeconds: 4,
               expiration: { maxEntries: 8, maxAgeSeconds: 1800 },
+            },
+          },
+          {
+            urlPattern: FORECAST_PATTERN,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'rain-forecast',
+              networkTimeoutSeconds: 6,
+              expiration: { maxEntries: 2, maxAgeSeconds: 3 * 3600 },
+            },
+          },
+          {
+            // Basemap tiles never change for a given URL; keep the few the
+            // map actually shows so it still renders offline.
+            urlPattern: BASEMAP_PATTERN,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'basemap-tiles',
+              expiration: { maxEntries: 120, maxAgeSeconds: 30 * 24 * 3600 },
             },
           },
         ],

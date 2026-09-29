@@ -77,3 +77,24 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Rain map: fade the forecast square into the basemap instead of a hard edge. */
+.rain-overlay {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 12%, #000 88%, transparent),
+    linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 12%, #000 88%, transparent),
+    linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+  mask-composite: intersect;
+}
+
+/* OSM has no dark style; invert the light tiles and pull the hues back. */
+.rain-map-dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) grayscale(0.4);
+}
+
+.rain-map-dark .leaflet-container {
+  background: var(--color-sunken);
+}

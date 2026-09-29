@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatClock,
   formatDuration,
   formatLevel,
   formatStamp,
@@ -91,5 +92,13 @@ describe('trendArrow', () => {
     expect(trendArrow('up')).toBe('▲')
     expect(trendArrow('down')).toBe('▼')
     expect(trendArrow('flat')).toBe('■')
+  })
+})
+
+describe('formatClock', () => {
+  it('shows 24-hour Jakarta time', () => {
+    // 07:00 UTC = 14:00 WIB
+    expect(formatClock(new Date('2026-09-29T07:00:00Z'), 'en-GB')).toBe('14:00')
+    expect(formatClock(new Date('2026-09-29T16:30:00Z'), 'id-ID')).toBe('23:30')
   })
 })
