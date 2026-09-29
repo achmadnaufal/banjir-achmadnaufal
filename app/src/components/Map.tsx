@@ -1,11 +1,12 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { PESANGGRAHAN } from '../config/station'
-import { FRAME_INTERVAL_MS, UPSTREAM_OF_LAT } from '../config/forecast'
+import { UPSTREAM_OF_LAT } from '../config/forecast'
 import { RAIN_GRID, useRainForecast } from '../hooks/useRainForecast'
+import { useRainPlayback, type RainPlayback } from '../hooks/useRainPlayback'
 import type { ResolvedTheme } from '../hooks/useTheme'
 import { formatClock } from '../lib/format'
-import { RAIN_SCALE } from '../lib/rainColor'
+import { RAIN_STOPS } from '../lib/rainColor'
 import { upstreamMask, upstreamSummary, type RainFrame } from '../lib/rainForecast'
 
 // Leaflet is the second-heaviest dependency after Recharts and sits at the
@@ -15,9 +16,14 @@ const RainMapCanvas = lazy(() => import('./RainMapCanvas'))
 const GOOGLE_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${PESANGGRAHAN.lat},${PESANGGRAHAN.lng}`
 const UPSTREAM_MASK = upstreamMask(RAIN_GRID, UPSTREAM_OF_LAT)
 
-const LEGEND_GRADIENT = `linear-gradient(to right, ${RAIN_SCALE.map(
-  ({ rgba: [r, g, b] }) => `rgb(${r} ${g} ${b})`,
-).join(', ')})`
+// Skip the transparent fade-in stop; the bar shows the visible ramp.
+const LEGEND_GRADIENT = `linear-gradient(to right, ${RAIN_STOPS.slice(1)
+  .map(({ rgba: [r, g, b] }) => `rgb(${r} ${g} ${b})`)
+  .join(', ')})`
+
+const HOUR_MS = 60 * 60 * 1000
+/** Label granularity while playing: whole 10 minutes, so the text doesn't flicker. */
+const LABEL_STEP_MS = 10 * 60 * 1000
 
 function MapPlaceholder({ children }: { children: React.ReactNode }) {
   return (
@@ -27,19 +33,24 @@ function MapPlaceholder({ children }: { children: React.ReactNode }) {
   )
 }
 
-function usePlayback(frameCount: number) {
-  const [index, setIndex] = useState(0)
-  const [playing, setPlaying] = useState(false)
-
+/** True while the element is on screen; assumes visible where unsupported. */
+function useInView<T extends Element>() {
+  const ref = useRef<T>(null)
+  const [inView, setInView] = useState(true)
   useEffect(() => {
-    if (!playing || frameCount < 2) return
-    const id = setInterval(() => setIndex((i) => (i + 1) % frameCount), FRAME_INTERVAL_MS)
-    return () => clearInterval(id)
-  }, [playing, frameCount])
+    const el = ref.current
+    if (!el || typeof IntersectionObserver !== 'function') return
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting))
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+  return { ref, inView }
+}
 
-  // A refetch can return fewer frames than before; never point past the end.
-  const safeIndex = frameCount === 0 ? 0 : Math.min(index, frameCount - 1)
-  return { index: safeIndex, setIndex, playing, setPlaying }
+/** Wall-clock time at a fractional frame position, snapped to 10 minutes. */
+function timeAt(frames: readonly RainFrame[], position: number): Date {
+  const ms = frames[0].startsAt.getTime() + position * HOUR_MS
+  return new Date(Math.round(ms / LABEL_STEP_MS) * LABEL_STEP_MS)
 }
 
 function UpstreamLine({ frames }: { frames: readonly RainFrame[] }) {
@@ -62,9 +73,9 @@ function UpstreamLine({ frames }: { frames: readonly RainFrame[] }) {
   )
 }
 
-function Controls({ frames, playback }: { frames: readonly RainFrame[]; playback: ReturnType<typeof usePlayback> }) {
+function Controls({ frames, playback }: { frames: readonly RainFrame[]; playback: RainPlayback }) {
   const { t, tag } = useI18n()
-  const frame = frames[playback.index]
+  const label = t.rainFrame(formatClock(timeAt(frames, playback.position), tag))
   return (
     <div className="flex items-center gap-3">
       <button
@@ -79,30 +90,30 @@ function Controls({ frames, playback }: { frames: readonly RainFrame[]; playback
         type="range"
         min={0}
         max={frames.length - 1}
-        step={1}
-        value={playback.index}
+        step="any"
+        value={playback.position}
         aria-label={t.rainSlider}
-        aria-valuetext={frame ? t.rainFrame(formatClock(frame.startsAt, tag), formatClock(frame.endsAt, tag)) : undefined}
-        onChange={(e) => {
-          playback.setPlaying(false)
-          playback.setIndex(Number(e.target.value))
-        }}
+        aria-valuetext={label}
+        onChange={(e) => playback.seek(Number(e.target.value))}
         className="min-w-0 flex-1 accent-ink"
       />
-      <span className="w-24 shrink-0 text-right text-xs tabular-nums text-ink-2">
-        {frame && t.rainFrame(formatClock(frame.startsAt, tag), formatClock(frame.endsAt, tag))}
-      </span>
+      <span className="w-20 shrink-0 text-right text-xs tabular-nums text-ink-2">{label}</span>
     </div>
   )
 }
 
 function Legend() {
   const { t } = useI18n()
+  // Column widths match where the BMKG class breaks (5, 10, 20 mm/h) fall on
+  // the evenly spaced gradient stops above.
   return (
-    <div className="flex items-center gap-2 text-[11px] text-ink-3">
-      <span>{t.rainLegendLight}</span>
-      <span className="h-1.5 flex-1 rounded-full" style={{ background: LEGEND_GRADIENT }} />
-      <span>{t.rainLegendHeavy}</span>
+    <div className="space-y-1 text-[11px] text-ink-3">
+      <div className="h-1.5 rounded-full" style={{ background: LEGEND_GRADIENT }} />
+      <div className="grid grid-cols-[2fr_1fr_1fr_1fr]">
+        {t.rainLegendClasses.map((name) => (
+          <span key={name}>{name}</span>
+        ))}
+      </div>
     </div>
   )
 }
@@ -111,10 +122,11 @@ export function Map({ theme }: { theme: ResolvedTheme }) {
   const { t } = useI18n()
   const forecast = useRainForecast()
   const frames = forecast.frames ?? []
-  const playback = usePlayback(frames.length)
+  const { ref: sectionRef, inView } = useInView<HTMLElement>()
+  const playback = useRainPlayback(frames.length, inView)
 
   return (
-    <section className="overflow-hidden rounded-xl bg-surface" aria-label={t.mapRegion}>
+    <section ref={sectionRef} className="overflow-hidden rounded-xl bg-surface" aria-label={t.mapRegion}>
       <div className="flex items-center justify-between gap-3 px-4 py-3">
         <div className="min-w-0">
           <h2 className="label">{t.rainHeading}</h2>
@@ -134,7 +146,7 @@ export function Map({ theme }: { theme: ResolvedTheme }) {
         <RainMapCanvas
           grid={RAIN_GRID}
           frames={frames}
-          frameIndex={playback.index}
+          position={playback.position}
           theme={theme}
           gateLabel={t.rainGate}
         />

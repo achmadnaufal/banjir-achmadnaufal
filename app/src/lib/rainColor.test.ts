@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RAIN_SCALE, rainColor } from './rainColor'
+import { RAIN_STOPS, rainColor } from './rainColor'
 
 describe('rainColor', () => {
   it('leaves dry and missing cells transparent', () => {
@@ -9,14 +9,36 @@ describe('rainColor', () => {
     expect(rainColor(-1)).toBeNull()
   })
 
-  it('picks the highest band the value reaches', () => {
-    expect(rainColor(RAIN_SCALE[0].minMm)).toEqual(RAIN_SCALE[0].rgba)
-    expect(rainColor(RAIN_SCALE[1].minMm + 0.01)).toEqual(RAIN_SCALE[1].rgba)
-    expect(rainColor(999)).toEqual(RAIN_SCALE[RAIN_SCALE.length - 1].rgba)
+  it('hits each stop exactly', () => {
+    for (const stop of RAIN_STOPS.slice(1)) {
+      expect(rainColor(stop.mm)).toEqual(stop.rgba)
+    }
   })
 
-  it('keeps bands in ascending order', () => {
-    const mins = RAIN_SCALE.map((b) => b.minMm)
-    expect([...mins].sort((a, b) => a - b)).toEqual(mins)
+  it('blends between neighbouring stops', () => {
+    const [a, b] = [RAIN_STOPS[3], RAIN_STOPS[4]]
+    const mid = rainColor((a.mm + b.mm) / 2)
+    expect(mid).not.toBeNull()
+    mid!.forEach((channel, i) => {
+      expect(channel).toBeCloseTo((a.rgba[i] + b.rgba[i]) / 2, 0)
+    })
+  })
+
+  it('follows the iOS ramp: blue light, purple moderate, yellow heavy, pale yellow extreme', () => {
+    const [lr, , lb] = rainColor(2)!
+    expect(lb).toBeGreaterThan(lr) // blue
+    const [mr, mg, mb] = rainColor(5)!
+    expect(mr).toBeGreaterThan(mg)
+    expect(mb).toBeGreaterThan(mg) // purple
+    const [hr, hg, hb] = rainColor(10)!
+    expect(hr).toBeGreaterThan(hb)
+    expect(hg).toBeGreaterThan(hb) // yellow
+    const [, , eb] = rainColor(40)!
+    expect(eb).toBeGreaterThan(hb) // paler than heavy
+  })
+
+  it('keeps stops in ascending order', () => {
+    const mms = RAIN_STOPS.map((s) => s.mm)
+    expect([...mms].sort((x, y) => x - y)).toEqual(mms)
   })
 })

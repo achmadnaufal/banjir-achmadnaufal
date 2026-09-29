@@ -48,17 +48,45 @@ describe('Map (rain forecast)', () => {
       expect(screen.getByText(/heaviest around .* \(8\.0 mm\/h\)/)).toBeInTheDocument()
     })
 
-    it('scrubbing moves to another hour and play toggles', async () => {
+    it('starts playing on its own', async () => {
+      renderMap()
+      const pause = await screen.findByRole('button', { name: 'Pause' })
+      expect(pause).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('scrubbing takes over from playback and labels the time', async () => {
       const user = userEvent.setup()
       renderMap()
       const slider = await screen.findByRole('slider', { name: 'Forecast hour' })
-      const play = screen.getByRole('button', { name: 'Play' })
-      await user.click(play)
-      expect(screen.getByRole('button', { name: 'Pause' })).toHaveAttribute('aria-pressed', 'true')
+      await screen.findByRole('button', { name: 'Pause' })
       fireEvent.change(slider, { target: { value: '4' } })
       expect(slider).toHaveValue('4')
-      // Scrubbing takes over from playback.
-      expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument()
+      expect(slider.getAttribute('aria-valuetext')).toMatch(/^\d{2}:\d0 WIB$/)
+      const play = screen.getByRole('button', { name: 'Play' })
+      await user.click(play)
+      expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument()
+    })
+
+    it('stays still for readers who asked for reduced motion', async () => {
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: query.includes('reduce'),
+        media: query,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      }))
+      renderMap()
+      await screen.findByRole('slider', { name: 'Forecast hour' })
+      // Give autoplay every chance to (wrongly) start.
+      await new Promise((r) => setTimeout(r, 50))
+      expect(screen.getByRole('button', { name: 'Play' })).toHaveAttribute('aria-pressed', 'false')
+    })
+
+    it('shows the four BMKG intensity classes in the legend', async () => {
+      renderMap()
+      await screen.findByRole('slider', { name: 'Forecast hour' })
+      for (const name of ['Light', 'Moderate', 'Heavy', 'Extreme']) {
+        expect(screen.getByText(name)).toBeInTheDocument()
+      }
     })
   })
 

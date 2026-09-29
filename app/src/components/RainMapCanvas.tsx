@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { PESANGGRAHAN } from '../config/station'
-import { UPSTREAM_OF_LAT } from '../config/forecast'
+import { RAIN_RENDER_SIZE, UPSTREAM_OF_LAT } from '../config/forecast'
 import type { ResolvedTheme } from '../hooks/useTheme'
 import type { RainFrame, RainGrid } from '../lib/rainForecast'
-import { frameToPixels } from '../lib/rainImage'
+import { colorize, lerpFrames, upsample } from '../lib/rainImage'
+import { RainCanvasLayer } from './rainCanvasLayer'
 
 // Standard OSM tiles: keyless, same provider the old embedded map used.
 // Dark mode is a CSS filter on the tile pane (see .rain-map-dark in index.css).
@@ -25,40 +26,33 @@ const UPSTREAM_STYLE: L.PathOptions = {
 type Props = {
   grid: RainGrid
   frames: readonly RainFrame[]
-  frameIndex: number
+  /** Fractional frame index; 2.5 blends hour 2 and hour 3 evenly. */
+  position: number
   theme: ResolvedTheme
   gateLabel: string
 }
 
-function toLatLngBounds(b: RainGrid['bounds']): L.LatLngBoundsExpression {
-  return [
-    [b.south, b.west],
-    [b.north, b.east],
-  ]
+function toLatLngBounds(b: RainGrid['bounds']): L.LatLngBounds {
+  return L.latLngBounds([b.south, b.west], [b.north, b.east])
 }
 
-/** One tiny data-URL image per frame, rendered once per forecast fetch. */
-function renderFrames(frames: readonly RainFrame[], grid: RainGrid): string[] {
-  const canvas = document.createElement('canvas')
-  canvas.width = grid.cols
-  canvas.height = grid.rows
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return frames.map(() => '')
-  return frames.map((frame) => {
-    const image = new ImageData(frameToPixels(frame.mm, grid.rows, grid.cols), grid.cols, grid.rows)
-    ctx.putImageData(image, 0, 0)
-    return canvas.toDataURL('image/png')
-  })
+/**
+ * Upsample each hour once per fetch. Blending two upsampled hours per tick is
+ * then a cheap per-pixel lerp — both steps are linear, so the order is free.
+ */
+function upsampleFrames(frames: readonly RainFrame[], grid: RainGrid): number[][] {
+  return frames.map((f) => upsample(f.mm, grid.rows, grid.cols, RAIN_RENDER_SIZE, RAIN_RENDER_SIZE))
 }
 
-export default function RainMapCanvas({ grid, frames, frameIndex, theme, gateLabel }: Props) {
+export default function RainMapCanvas({ grid, frames, position, theme, gateLabel }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
-  const overlayRef = useRef<L.ImageOverlay | null>(null)
+  const rainRef = useRef<RainCanvasLayer | null>(null)
+  const gateRef = useRef<L.CircleMarker | null>(null)
 
-  const images = useMemo(() => renderFrames(frames, grid), [frames, grid])
+  const fields = useMemo(() => upsampleFrames(frames, grid), [frames, grid])
 
-  // Map, gate marker and upstream outline: created once.
+  // Map, gate marker and upstream outline: created once per grid.
   useEffect(() => {
     if (!containerRef.current) return
     const touch = L.Browser.mobile
@@ -73,6 +67,12 @@ export default function RainMapCanvas({ grid, frames, frameIndex, theme, gateLab
 
     L.tileLayer(TILE_URL, { attribution: ATTRIBUTION, maxZoom: 16 }).addTo(map)
 
+    rainRef.current = new RainCanvasLayer(
+      toLatLngBounds(grid.bounds),
+      RAIN_RENDER_SIZE,
+      RAIN_RENDER_SIZE,
+    ).addTo(map)
+
     L.rectangle(
       [
         [grid.bounds.south, grid.bounds.west],
@@ -81,44 +81,43 @@ export default function RainMapCanvas({ grid, frames, frameIndex, theme, gateLab
       UPSTREAM_STYLE,
     ).addTo(map)
 
-    L.circleMarker([PESANGGRAHAN.lat, PESANGGRAHAN.lng], {
+    gateRef.current = L.circleMarker([PESANGGRAHAN.lat, PESANGGRAHAN.lng], {
       radius: 6,
       color: '#ffffff',
       weight: 2,
       fillColor: '#0b0b0b',
       fillOpacity: 1,
     })
-      .bindTooltip(`${gateLabel}: ${PESANGGRAHAN.name}`)
+      .bindTooltip(PESANGGRAHAN.name)
       .addTo(map)
 
     mapRef.current = map
     return () => {
       map.remove()
       mapRef.current = null
-      overlayRef.current = null
+      rainRef.current = null
+      gateRef.current = null
     }
-  }, [grid, gateLabel])
+  }, [grid])
 
-  // Rain overlay follows the selected frame.
+  // Language switch only relabels the marker; rebuilding the map would blank
+  // the rain canvas until the next playback tick.
   useEffect(() => {
-    const map = mapRef.current
-    const url = images[frameIndex]
-    if (!map) return
-    if (!url) {
-      overlayRef.current?.remove()
-      overlayRef.current = null
+    gateRef.current?.setTooltipContent(`${gateLabel}: ${PESANGGRAHAN.name}`)
+  }, [gateLabel])
+
+  // Repaint the rain canvas in place for every playback tick.
+  useEffect(() => {
+    const layer = rainRef.current
+    if (!layer) return
+    if (fields.length === 0) {
+      layer.draw(new Uint8ClampedArray(RAIN_RENDER_SIZE * RAIN_RENDER_SIZE * 4))
       return
     }
-    if (overlayRef.current) {
-      overlayRef.current.setUrl(url)
-    } else {
-      overlayRef.current = L.imageOverlay(url, toLatLngBounds(grid.bounds), {
-        opacity: 0.85,
-        interactive: false,
-        className: 'rain-overlay',
-      }).addTo(map)
-    }
-  }, [images, frameIndex, grid])
+    const i0 = Math.min(Math.floor(position), fields.length - 1)
+    const i1 = Math.min(i0 + 1, fields.length - 1)
+    layer.draw(colorize(lerpFrames(fields[i0], fields[i1], position - i0)))
+  }, [fields, position])
 
   // Leaflet owns the inner div's classes; the theme class lives on the wrapper
   // so a re-render never strips them.

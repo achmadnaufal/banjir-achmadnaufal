@@ -34,4 +34,12 @@ export const OPEN_METEO_URL = 'https://api.open-meteo.com/v1/forecast'
 /** Model runs update hourly at best; polling faster only spends quota. */
 export const FORECAST_REFRESH_MS = 30 * 60 * 1000
 
-export const FRAME_INTERVAL_MS = 700
+/** Playback: one forecast hour per 650 ms → the 12 h loop runs in ~8 s. */
+export const PLAYBACK_HOUR_MS = 650
+export const PLAYBACK_END_HOLD_MS = 1200
+
+/** ~30 fps is smooth for slow-moving rain and half the battery of 60. */
+export const PLAYBACK_MIN_FRAME_MS = 33
+
+/** Canvas resolution the 8 × 8 grid is upsampled to before colouring. */
+export const RAIN_RENDER_SIZE = 64

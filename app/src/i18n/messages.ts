@@ -87,12 +87,12 @@ export type Messages = {
   rainPlay: string
   rainPause: string
   rainSlider: string
-  rainFrame: (from: string, to: string) => string
+  rainFrame: (time: string) => string
   rainUpstreamTotal: (mm: string) => string
   rainUpstreamPeak: (from: string, mm: string) => string
   rainUpstreamDry: string
-  rainLegendLight: string
-  rainLegendHeavy: string
+  /** BMKG hourly classes, in order: light, moderate, heavy, very heavy. */
+  rainLegendClasses: readonly [string, string, string, string]
   rainGate: string
 
   loadFailedTitle: string
@@ -209,12 +209,11 @@ const en: Messages = {
   rainPlay: 'Play',
   rainPause: 'Pause',
   rainSlider: 'Forecast hour',
-  rainFrame: (from, to) => `${from}–${to} WIB`,
+  rainFrame: (time) => `${time} WIB`,
   rainUpstreamTotal: (mm) => `Upstream: ${mm} mm expected in the next 12 h`,
   rainUpstreamPeak: (from, mm) => `heaviest around ${from} (${mm} mm/h)`,
   rainUpstreamDry: 'No rain expected upstream in the next 12 h',
-  rainLegendLight: 'Light',
-  rainLegendHeavy: 'Heavy',
+  rainLegendClasses: ['Light', 'Moderate', 'Heavy', 'Extreme'],
   rainGate: 'Water gate',
 
   loadFailedTitle: 'Could not load the latest reading',
@@ -328,12 +327,11 @@ const id: Messages = {
   rainPlay: 'Putar',
   rainPause: 'Jeda',
   rainSlider: 'Jam prakiraan',
-  rainFrame: (from, to) => `${from}–${to} WIB`,
+  rainFrame: (time) => `${time} WIB`,
   rainUpstreamTotal: (mm) => `Hulu: diperkirakan ${mm} mm dalam 12 jam ke depan`,
   rainUpstreamPeak: (from, mm) => `paling deras sekitar ${from} (${mm} mm/jam)`,
   rainUpstreamDry: 'Tidak ada hujan di hulu dalam 12 jam ke depan',
-  rainLegendLight: 'Ringan',
-  rainLegendHeavy: 'Lebat',
+  rainLegendClasses: ['Ringan', 'Sedang', 'Lebat', 'Sangat lebat'],
   rainGate: 'Pintu air',
 
   loadFailedTitle: 'Gagal memuat bacaan terbaru',
