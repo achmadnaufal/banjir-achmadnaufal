@@ -24,17 +24,22 @@ describe('rainColor', () => {
     })
   })
 
-  it('follows the iOS ramp: blue light, purple moderate, yellow heavy, pale yellow extreme', () => {
-    const [lr, , lb] = rainColor(2)!
+  it('follows the iOS ramp on WMO classes: blue light, purple moderate, yellow heavy, pale yellow extreme', () => {
+    const [lr, , lb] = rainColor(2)! // light < 2.5
     expect(lb).toBeGreaterThan(lr) // blue
-    const [mr, mg, mb] = rainColor(5)!
+    const [mr, mg, mb] = rainColor(6)! // moderate 2.5–10
     expect(mr).toBeGreaterThan(mg)
     expect(mb).toBeGreaterThan(mg) // purple
-    const [hr, hg, hb] = rainColor(10)!
+    const [hr, hg, hb] = rainColor(25)! // heavy 10–50
     expect(hr).toBeGreaterThan(hb)
     expect(hg).toBeGreaterThan(hb) // yellow
-    const [, , eb] = rainColor(40)!
+    const [, , eb] = rainColor(80)! // extreme ≥ 50
     expect(eb).toBeGreaterThan(hb) // paler than heavy
+  })
+
+  it('has a stop on every WMO class boundary', () => {
+    const mms = RAIN_STOPS.map((s) => s.mm)
+    for (const boundary of [2.5, 10, 50]) expect(mms).toContain(boundary)
   })
 
   it('keeps stops in ascending order', () => {

@@ -40,7 +40,7 @@ describe('upsample', () => {
 
 describe('renderRainPixels', () => {
   it('colours in value space and leaves dry pixels transparent', () => {
-    const px = renderRainPixels([0, 40], 1, 2, 4, 1)
+    const px = renderRainPixels([0, 200], 1, 2, 4, 1)
     expect(px).toHaveLength(16)
     expect(Array.from(px.slice(0, 4))).toEqual([0, 0, 0, 0])
     expect(Array.from(px.slice(12, 16))).toEqual([...RAIN_STOPS[RAIN_STOPS.length - 1].rgba])

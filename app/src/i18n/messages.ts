@@ -91,7 +91,7 @@ export type Messages = {
   rainUpstreamTotal: (mm: string) => string
   rainUpstreamPeak: (from: string, mm: string) => string
   rainUpstreamDry: string
-  /** BMKG hourly classes, in order: light, moderate, heavy, very heavy. */
+  /** WMO rain-rate classes, in order: light, moderate, heavy, extreme. */
   rainLegendClasses: readonly [string, string, string, string]
   rainGate: string
 
@@ -331,7 +331,7 @@ const id: Messages = {
   rainUpstreamTotal: (mm) => `Hulu: diperkirakan ${mm} mm dalam 12 jam ke depan`,
   rainUpstreamPeak: (from, mm) => `paling deras sekitar ${from} (${mm} mm/jam)`,
   rainUpstreamDry: 'Tidak ada hujan di hulu dalam 12 jam ke depan',
-  rainLegendClasses: ['Ringan', 'Sedang', 'Lebat', 'Sangat lebat'],
+  rainLegendClasses: ['Ringan', 'Sedang', 'Lebat', 'Ekstrem'],
   rainGate: 'Pintu air',
 
   loadFailedTitle: 'Gagal memuat bacaan terbaru',

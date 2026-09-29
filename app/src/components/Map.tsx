@@ -18,11 +18,11 @@ const GOOGLE_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${PESAN
 const UPSTREAM_POINTS = buildGrid(UPSTREAM_BOUNDS, UPSTREAM_SAMPLE_ROWS, UPSTREAM_SAMPLE_COLS).points
 
 /**
- * Where each stop sits on the legend bar. The four classes get equal
- * quarters — light up to 5 mm/h, moderate to 10, heavy to 20, extreme beyond —
- * so the labels line up under their colours instead of bunching to one side.
+ * Where each stop sits on the legend bar. The four WMO classes get equal
+ * quarters — light up to 2.5 mm/h, moderate to 10, heavy to 50, extreme
+ * beyond — so the labels line up under their colours.
  */
-const LEGEND_POSITION: Record<number, number> = { 0.5: 0, 2: 12, 5: 25, 10: 50, 20: 75, 40: 100 }
+const LEGEND_POSITION: Record<number, number> = { 0.5: 0, 2.5: 25, 6: 40, 10: 50, 20: 60, 50: 75, 100: 100 }
 
 const LEGEND_GRADIENT = `linear-gradient(to right, ${RAIN_STOPS.filter((s) => s.mm in LEGEND_POSITION)
   .map(({ mm, rgba: [r, g, b] }) => `rgb(${r} ${g} ${b}) ${LEGEND_POSITION[mm]}%`)
