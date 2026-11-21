@@ -15,3 +15,6 @@ coverage/
 .env.local
 .env.*.local
 .dev.vars
+
+# superpowers plan-execution scratch
+.superpowers/
