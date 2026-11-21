@@ -1,0 +1,4 @@
+node_modules
+src
+*.sqlite3
+deploy/.env
