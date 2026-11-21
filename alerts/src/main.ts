@@ -6,6 +6,7 @@ import { readRiver, type RiverReading } from './river'
 import type { AlertKind } from './rules'
 import { broadcast, createWebPushSender } from './sender'
 import { openStore } from './store'
+import { useClassicTlsGroups } from './tlsGroups'
 import { startWatcher, watchdogDue } from './watcher'
 
 /**
@@ -119,6 +120,8 @@ function main(): void {
 }
 
 try {
+  // Before any connection is made: BPBD resets post-quantum handshakes from the VPS.
+  useClassicTlsGroups()
   main()
 } catch (err) {
   log(err instanceof Error ? err.message : String(err))

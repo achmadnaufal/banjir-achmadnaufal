@@ -20,7 +20,7 @@ import type { HistoryResponse, ThresholdsCm } from '../../app/src/types/upstream
  * Never throws — a failed source becomes a line in `problems`.
  */
 
-// BPBD hung past 8 s nineteen times on the night of 2026-11-21; a run every 5 min has room.
+// Generous on purpose: a run every 5 min has room, and BPBD answers slowly at times.
 const FETCH_TIMEOUT_MS = 20_000
 const DSDA_WINDOW_MS = 24 * 60 * 60 * 1000
 
