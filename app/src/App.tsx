@@ -12,8 +12,8 @@ import {
   sensorReading,
   staleAfterMs,
   withManualPoints,
-  type StationDefaults,
 } from './lib/manualFallback'
+import { STATION_DEFAULTS } from './lib/stationDefaults'
 import { classify } from './lib/siaga'
 import { AboutSection } from './components/AboutSection'
 import { AlertOptIn } from './components/AlertOptIn'
@@ -33,15 +33,6 @@ import { ThemeToggle } from './components/ThemeToggle'
 const SiagaChart = lazy(() =>
   import('./components/SiagaChart').then((m) => ({ default: m.SiagaChart })),
 )
-
-const STATION_DEFAULTS: StationDefaults = {
-  id: PESANGGRAHAN.id,
-  name: PESANGGRAHAN.name,
-  location: PESANGGRAHAN.river,
-  lat: PESANGGRAHAN.lat,
-  lng: PESANGGRAHAN.lng,
-  thresholdsCm: PESANGGRAHAN.fallbackThresholdsCm,
-}
 
 function ChartPlaceholder({ children }: { children: React.ReactNode }) {
   return (
