@@ -69,14 +69,23 @@ export type Messages = {
   bandGloss: Record<'siaga1' | 'siaga2' | 'siaga3' | 'normal', string | null>
   currentStatusNote: string
 
-  alertsUnsupported: string
-  alertsBlocked: string
-  alertsOnTitle: string
-  alertsOnBody: string
-  alertsTestChime: string
-  alertsOptInTitle: string
-  alertsOptInBody: string
-  alertsEnable: string
+  pushRegion: string
+  pushInstallTitle: string
+  pushInstallSteps: readonly string[]
+  pushOffTitle: string
+  pushOffBody: string
+  pushEnable: string
+  pushWorking: string
+  pushOnTitle: string
+  pushOnBody: string
+  pushTest: string
+  pushTestSent: string
+  pushTurnOff: string
+  pushDenied: string
+  pushUnsupported: string
+  pushServiceChecked: (minutes: number) => string
+  pushServiceStale: string
+  pushError: (detail: string) => string
   alertRisingTitle: (band: string, level: string) => string
   alertRisingBody: string
 
@@ -195,17 +204,32 @@ const en: Messages = {
   },
   currentStatusNote: '(current status)',
 
-  alertsUnsupported:
-    'This browser does not support notifications. The chart still updates while the page is open.',
-  alertsBlocked:
-    'Notifications are blocked. Re-enable them in your browser site settings to get rising-siaga alerts.',
-  alertsOnTitle: 'Alerts on',
-  alertsOnBody: "You'll get a notification and a chime when the level rises into a higher band.",
-  alertsTestChime: 'Test chime',
-  alertsOptInTitle: 'Enable early warning',
-  alertsOptInBody:
-    'Notifications only fire while this page is open. Pin it to your home screen and leave it open during heavy rain.',
-  alertsEnable: 'Enable alerts',
+  pushRegion: 'Flood alerts',
+  pushInstallTitle: 'Get alerts even when this page is closed',
+  pushInstallSteps: [
+    'In Safari, tap the Share button',
+    'Choose “Add to Home Screen”',
+    'Open Monitor Banjir from your Home Screen',
+    'Tap “Turn on alerts” there',
+  ],
+  pushOffTitle: 'Alerts while the page is closed',
+  pushOffBody:
+    'Get a notification when the river reaches WASPADA (150 cm) or higher — at most once an hour, right away if it climbs a band, and once when it is back to normal.',
+  pushEnable: 'Turn on alerts',
+  pushWorking: 'One moment…',
+  pushOnTitle: 'Alerts are on for this phone',
+  pushOnBody: 'They arrive even when this page is closed.',
+  pushTest: 'Send test',
+  pushTestSent: 'Test sent — check your notifications.',
+  pushTurnOff: 'Turn off',
+  pushDenied:
+    'Notifications are blocked for this app. Turn them on in Settings → Notifications → Monitor Banjir, then come back.',
+  pushUnsupported:
+    "This browser can't get alerts while the page is closed. On iPhone, update to iOS 16.4 or later and add this page to the Home Screen from Safari.",
+  pushServiceChecked: (minutes) =>
+    minutes < 1 ? 'Alert service checked just now' : `Alert service checked ${minutes} min ago`,
+  pushServiceStale: 'The alert service has not checked the river recently — alerts may be delayed.',
+  pushError: (detail) => `Couldn't change alerts: ${detail}`,
   alertRisingTitle: (band, level) => `${band} rising — ${level}`,
   alertRisingBody: 'Pesanggrahan water level entered a higher alert band.',
 
@@ -242,7 +266,7 @@ const en: Messages = {
   footerAgency: 'Jakarta Water Resources Agency (DSDA DKI)',
   footerLastPoll: (time) => `Last update ${time} WIB`,
   footerFetching: 'Fetching latest data…',
-  footerAlertsNote: 'alerts only fire while this page is open',
+  footerAlertsNote: 'turn on alerts to get them with the page closed',
   footerSourceCode: 'source code',
   footerFallback: 'hourly fallback',
 
@@ -252,7 +276,7 @@ const en: Messages = {
   aboutStatusHeading: 'Siaga status levels',
   aboutAlertsHeading: 'How the early warning works',
   aboutAlertsBody:
-    'While this tab is open, the browser fires a notification and a chime when the water level rises past a siaga threshold. For fastest access during heavy rain, add this page to your home screen as an app (PWA). Notifications only sound while the tab is open — this is not full push — so combine it with official BPBD information.',
+    'Turn on alerts to get a phone notification when the river reaches WASPADA (150 cm) or higher, even with this page closed: at most once an hour, right away if it climbs a band, and once when it is back to normal. On iPhone, first add this page to your Home Screen from Safari (iOS 16.4 or later) and turn alerts on from there. While the page is open it also plays a chime. These alerts are unofficial — combine them with official BPBD information.',
   aboutSourceHeading: 'Data source',
   aboutSourceBody:
     'The Pesanggrahan observation post (station code 34, ID 160) upstream on the Pesanggrahan River, published openly at',
@@ -323,17 +347,32 @@ const id: Messages = {
   bandGloss: { siaga1: null, siaga2: null, siaga3: null, normal: null },
   currentStatusNote: '(status saat ini)',
 
-  alertsUnsupported:
-    'Peramban ini tidak mendukung notifikasi. Grafik tetap diperbarui selama halaman terbuka.',
-  alertsBlocked:
-    'Notifikasi diblokir. Aktifkan kembali di pengaturan situs peramban untuk menerima peringatan kenaikan siaga.',
-  alertsOnTitle: 'Peringatan aktif',
-  alertsOnBody: 'Notifikasi dan nada akan berbunyi saat air naik ke band yang lebih tinggi.',
-  alertsTestChime: 'Tes nada',
-  alertsOptInTitle: 'Aktifkan peringatan dini',
-  alertsOptInBody:
-    'Notifikasi hanya berbunyi selama halaman ini terbuka. Pasang di layar utama dan biarkan terbuka saat hujan deras.',
-  alertsEnable: 'Aktifkan peringatan',
+  pushRegion: 'Peringatan banjir',
+  pushInstallTitle: 'Dapatkan peringatan walau halaman ini tertutup',
+  pushInstallSteps: [
+    'Di Safari, ketuk tombol Bagikan',
+    'Pilih “Tambah ke Layar Utama”',
+    'Buka Monitor Banjir dari Layar Utama',
+    'Ketuk “Nyalakan peringatan” di sana',
+  ],
+  pushOffTitle: 'Peringatan saat halaman tertutup',
+  pushOffBody:
+    'Dapatkan notifikasi saat sungai mencapai WASPADA (150 cm) atau lebih — paling sering sejam sekali, langsung jika naik satu band, dan sekali saat kembali normal.',
+  pushEnable: 'Nyalakan peringatan',
+  pushWorking: 'Sebentar…',
+  pushOnTitle: 'Peringatan aktif di ponsel ini',
+  pushOnBody: 'Tetap datang walau halaman ini tertutup.',
+  pushTest: 'Kirim tes',
+  pushTestSent: 'Tes terkirim — cek notifikasi.',
+  pushTurnOff: 'Matikan',
+  pushDenied:
+    'Notifikasi diblokir untuk aplikasi ini. Nyalakan di Pengaturan → Notifikasi → Monitor Banjir, lalu kembali ke sini.',
+  pushUnsupported:
+    'Peramban ini tidak bisa menerima peringatan saat halaman tertutup. Di iPhone, perbarui ke iOS 16.4 atau lebih baru dan tambahkan halaman ini ke Layar Utama dari Safari.',
+  pushServiceChecked: (minutes) =>
+    minutes < 1 ? 'Layanan peringatan baru saja mengecek' : `Layanan peringatan dicek ${minutes} menit lalu`,
+  pushServiceStale: 'Layanan peringatan belum mengecek sungai baru-baru ini — peringatan bisa terlambat.',
+  pushError: (detail) => `Gagal mengubah peringatan: ${detail}`,
   alertRisingTitle: (band, level) => `${band} naik — ${level}`,
   alertRisingBody: 'Tinggi muka air Pesanggrahan masuk ke band siaga yang lebih tinggi.',
 
@@ -370,7 +409,7 @@ const id: Messages = {
   footerAgency: 'Dinas SDA DKI Jakarta',
   footerLastPoll: (time) => `Pembaruan terakhir ${time} WIB`,
   footerFetching: 'Mengambil data terbaru…',
-  footerAlertsNote: 'peringatan hanya aktif selama halaman terbuka',
+  footerAlertsNote: 'nyalakan peringatan agar tetap datang walau halaman tertutup',
   footerSourceCode: 'kode sumber',
   footerFallback: 'cadangan per jam',
 
@@ -380,7 +419,7 @@ const id: Messages = {
   aboutStatusHeading: 'Keterangan status siaga',
   aboutAlertsHeading: 'Cara kerja peringatan dini',
   aboutAlertsBody:
-    'Saat tab halaman terbuka, peramban akan memberi notifikasi otomatis dan bunyi peringatan ketika tinggi muka air naik melewati ambang siaga. Untuk akses cepat saat hujan deras, pasang halaman ini di layar utama ponsel sebagai aplikasi (PWA). Notifikasi hanya berbunyi saat tab terbuka — bukan push penuh — kombinasikan dengan informasi resmi BPBD.',
+    'Nyalakan peringatan untuk menerima notifikasi di ponsel saat sungai mencapai WASPADA (150 cm) atau lebih, walau halaman ini tertutup: paling sering sejam sekali, langsung jika naik satu band, dan sekali saat kembali normal. Di iPhone, tambahkan dulu halaman ini ke Layar Utama dari Safari (iOS 16.4 atau lebih baru) lalu nyalakan peringatan dari sana. Saat halaman terbuka, nada peringatan juga berbunyi. Peringatan ini tidak resmi — kombinasikan dengan informasi resmi BPBD.',
   aboutSourceHeading: 'Sumber data',
   aboutSourceBody:
     'Pos pemantauan Pesanggrahan (kode stasiun 34, ID 160) di hulu Sungai Pesanggrahan, dipublikasikan secara terbuka di',

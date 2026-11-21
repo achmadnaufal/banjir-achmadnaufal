@@ -4,6 +4,7 @@ import { useLatest } from './hooks/useLatest'
 import { rangeWindowStart, useHistory, type Range } from './hooks/useHistory'
 import { useManualReadings } from './hooks/useManualReadings'
 import { useTheme } from './hooks/useTheme'
+import { usePushAlerts } from './hooks/usePushAlerts'
 import { useTransitionAlert } from './hooks/useTransitionAlert'
 import { LocaleProvider } from './i18n/LocaleProvider'
 import { useI18n } from './i18n/useI18n'
@@ -16,13 +17,13 @@ import {
 import { STATION_DEFAULTS } from './lib/stationDefaults'
 import { classify } from './lib/siaga'
 import { AboutSection } from './components/AboutSection'
-import { AlertOptIn } from './components/AlertOptIn'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Footer } from './components/Footer'
 import { HistoryTable } from './components/HistoryTable'
 import { KeteranganLegend } from './components/KeteranganLegend'
 import { LocaleToggle } from './components/LocaleToggle'
 import { Map } from './components/Map'
+import { PushAlerts } from './components/PushAlerts'
 import { RangeToggle } from './components/RangeToggle'
 import { StatusCard } from './components/StatusCard'
 import { ThemeToggle } from './components/ThemeToggle'
@@ -52,7 +53,7 @@ function useNow(intervalMs: number): Date {
 }
 
 function Dashboard() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const now = useNow(30_000)
   const theme = useTheme()
   const latest = useLatest()
@@ -119,7 +120,9 @@ function Dashboard() {
     () => ({ title: t.alertRisingTitle, body: t.alertRisingBody }),
     [t],
   )
-  const alert = useTransitionAlert(currentLevel, currentCm, alertCopy)
+  // In-page chime while the page is open; closed-page alerts come from the push service.
+  useTransitionAlert(currentLevel, currentCm, alertCopy)
+  const push = usePushAlerts(locale)
 
   return (
     <div className="mx-auto max-w-screen-sm px-4">
@@ -204,11 +207,7 @@ function Dashboard() {
 
         <KeteranganLegend thresholdsCm={thresholdsCm} currentLevel={currentLevel} />
 
-        <AlertOptIn
-          permission={alert.permission}
-          onRequest={() => void alert.requestPermission()}
-          onTest={alert.testChime}
-        />
+        <PushAlerts {...push} now={now} />
 
         <Map theme={theme.resolved} />
 
