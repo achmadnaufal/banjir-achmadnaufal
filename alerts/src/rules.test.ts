@@ -34,6 +34,18 @@ describe('decideAlert', () => {
     })
   })
 
+  it('ignores a reading dated in the future, so it cannot mask real ones', () => {
+    // A mis-stamped reading 90 min ahead used to set lastSeenReadingAt into the
+    // future and swallow every real reading before it, escalations included.
+    const future = decideAlert(r('siaga3', '20:30'), INITIAL_ALERT_STATE, at('19:00'))
+    expect(future).toEqual({ push: null, next: INITIAL_ALERT_STATE })
+    expect(decideAlert(r('siaga1', '19:10'), future.next, arrival('19:10')).push).toBe('alert')
+  })
+
+  it('accepts a reading a few minutes ahead of the server clock', () => {
+    expect(decideAlert(r('siaga3', '19:05'), INITIAL_ALERT_STATE, at('19:00')).push).toBe('alert')
+  })
+
   it('ignores a reading it has already seen', () => {
     expect(run([['siaga3', '19:00'], ['siaga3', '19:00']]).pushes).toEqual(['alert', null])
   })
@@ -47,6 +59,7 @@ describe('decideAlert', () => {
       lastPushedReadingAt: at('19:00').getTime(),
       lastSeenReadingAt: at('19:00').getTime(),
       belowCount: 0,
+      belowSince: null,
     })
   })
 
@@ -102,6 +115,31 @@ describe('decideAlert', () => {
         ['normal', '23:00'],
       ]).pushes,
     ).toEqual(['alert', null, 'alert', null, 'allClear'])
+  })
+
+  it('does not cry wolf when 10-minute sensor readings hover around 150 cm', () => {
+    // Two NORMAL readings 10 min apart used to be enough for the all-clear,
+    // and the next WASPADA reading re-alerted at once: 5 pushes in an hour.
+    expect(
+      run([
+        ['siaga3', '19:00'],
+        ['normal', '19:10'],
+        ['normal', '19:20'],
+        ['siaga3', '19:30'],
+        ['normal', '19:40'],
+        ['normal', '19:50'],
+        ['siaga3', '20:00'],
+      ]).pushes,
+    ).toEqual(['alert', null, null, null, null, null, 'alert'])
+  })
+
+  it('gives the all-clear once sensor readings have stayed below 150 cm for an hour', () => {
+    const below = ['19:10', '19:20', '19:30', '19:40', '19:50', '20:00', '20:10'].map(
+      (hm): [SiagaLevel, string] => ['normal', hm],
+    )
+    expect(run([['siaga3', '19:00'], ...below]).pushes).toEqual([
+      'alert', null, null, null, null, null, null, 'allClear',
+    ])
   })
 
   it('does not flap around 150 cm on 10-minute sensor readings', () => {

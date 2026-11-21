@@ -121,7 +121,7 @@ function Dashboard() {
     [t],
   )
   // In-page chime while the page is open; closed-page alerts come from the push service.
-  useTransitionAlert(currentLevel, currentCm, alertCopy)
+  const inPageAlert = useTransitionAlert(currentLevel, currentCm, alertCopy)
   const push = usePushAlerts(locale)
 
   return (
@@ -207,7 +207,7 @@ function Dashboard() {
 
         <KeteranganLegend thresholdsCm={thresholdsCm} currentLevel={currentLevel} />
 
-        <PushAlerts {...push} now={now} />
+        <PushAlerts {...push} now={now} onGesture={inPageAlert.unlockAudio} />
 
         <Map theme={theme.resolved} />
 

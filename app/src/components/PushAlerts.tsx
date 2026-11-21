@@ -4,7 +4,11 @@ import type { PushAlertsState } from '../hooks/usePushAlerts'
 import { useI18n } from '../i18n/useI18n'
 import type { ServiceStatus } from '../lib/pushClient'
 
-type Props = PushAlertsState & { now: Date }
+type Props = PushAlertsState & {
+  now: Date
+  /** Called on every tap — lets the in-page chime unlock its audio. */
+  onGesture?: () => void
+}
 
 const PRIMARY =
   'mt-3 min-h-10 rounded-lg bg-ink px-4 text-sm font-medium text-plane hover:opacity-90 disabled:opacity-50'
@@ -12,13 +16,14 @@ const SECONDARY =
   'min-h-9 shrink-0 rounded-lg border border-hairline-strong px-3 text-xs font-medium text-ink-2 hover:bg-sunken hover:text-ink disabled:opacity-50'
 
 /** When the alert service last read the river — or a warning if it hasn't lately. */
-function ServiceLine({ service, now }: { service: ServiceStatus | null; now: Date }) {
+function ServiceLine({ service, unreachable, now }: { service: ServiceStatus | null; unreachable: boolean; now: Date }) {
   const { t } = useI18n()
-  if (service === null) return null
-  const age = service.lastRunAt === null ? Infinity : now.getTime() - service.lastRunAt
-  if (age > SERVICE_STALE_AFTER_MS) {
+  if (service === null && !unreachable) return null
+  const age = service?.lastRunAt == null ? Infinity : now.getTime() - service.lastRunAt
+  if (unreachable || age > SERVICE_STALE_AFTER_MS) {
+    // A live region, not role="status": the siaga badge owns that role on the page.
     return (
-      <p role="status" className="mt-3 text-xs font-medium text-critical">
+      <p aria-live="polite" className="mt-3 text-xs font-medium text-critical">
         {t.pushServiceStale}
       </p>
     )
@@ -63,8 +68,12 @@ function OnPanel({ disable, sendTest }: { disable: () => void; sendTest: () => P
   )
 }
 
-function Body({ view, enable, disable, sendTest }: Props) {
+function Body({ view, enable, disable, sendTest, onGesture }: Props) {
   const { t } = useI18n()
+  const tap = <T,>(action: () => T) => () => {
+    onGesture?.()
+    return action()
+  }
   switch (view) {
     case 'needs-install':
       return <InstallSteps />
@@ -73,14 +82,14 @@ function Body({ view, enable, disable, sendTest }: Props) {
     case 'denied':
       return <p className="text-sm text-ink-2">{t.pushDenied}</p>
     case 'on':
-      return <OnPanel disable={() => void disable()} sendTest={sendTest} />
+      return <OnPanel disable={tap(() => void disable())} sendTest={tap(sendTest)} />
     case 'off':
     case 'working':
       return (
         <>
           <p className="text-sm font-medium">{t.pushOffTitle}</p>
           <p className="mt-1 text-xs text-ink-3">{t.pushOffBody}</p>
-          <button type="button" disabled={view === 'working'} className={PRIMARY} onClick={() => void enable()}>
+          <button type="button" disabled={view === 'working'} className={PRIMARY} onClick={tap(() => void enable())}>
             {view === 'working' ? t.pushWorking : t.pushEnable}
           </button>
         </>
@@ -98,7 +107,7 @@ export function PushAlerts(props: Props) {
           {t.pushError(props.error)}
         </p>
       )}
-      <ServiceLine service={props.service} now={props.now} />
+      <ServiceLine service={props.service} unreachable={props.serviceUnreachable} now={props.now} />
     </section>
   )
 }

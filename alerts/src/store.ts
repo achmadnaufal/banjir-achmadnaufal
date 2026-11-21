@@ -55,6 +55,8 @@ export interface Store {
   /** The most recently created subscription, for marking the owner's phone. */
   newestSubscription(): { endpoint: string; createdAt: number } | null
   setOwner(endpoint: string, isOwner: boolean): boolean
+  /** Drops phones that never received a push and were added before `createdBefore`; never the owner's. */
+  evictUndelivered(createdBefore: Date): number
   close(): void
 }
 
@@ -117,7 +119,10 @@ export function openStore(path: string): Store {
       VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(endpoint) DO UPDATE SET
         p256dh = excluded.p256dh, auth = excluded.auth,
-        locale = excluded.locale, is_owner = excluded.is_owner`),
+        locale = excluded.locale,
+        -- A re-subscribe can add the owner flag, never clear it: the iPhone
+        -- app re-registers on every load without the token.
+        is_owner = MAX(is_owner, excluded.is_owner)`),
     delete: db.prepare('DELETE FROM subscriptions WHERE endpoint = ?'),
     list: db.prepare('SELECT endpoint, p256dh, auth, locale, is_owner FROM subscriptions ORDER BY created_at'),
     count: db.prepare('SELECT COUNT(*) AS n FROM subscriptions'),
@@ -125,6 +130,9 @@ export function openStore(path: string): Store {
     delivered: db.prepare('UPDATE subscriptions SET last_ok_at = ? WHERE endpoint = ?'),
     newest: db.prepare('SELECT endpoint, created_at FROM subscriptions ORDER BY created_at DESC LIMIT 1'),
     setOwner: db.prepare('UPDATE subscriptions SET is_owner = ? WHERE endpoint = ?'),
+    evict: db.prepare(
+      'DELETE FROM subscriptions WHERE last_ok_at IS NULL AND is_owner = 0 AND created_at < ?',
+    ),
   }
 
   return {
@@ -159,6 +167,9 @@ export function openStore(path: string): Store {
     },
     setOwner(endpoint, isOwner) {
       return Number(q.setOwner.run(isOwner ? 1 : 0, endpoint).changes) > 0
+    },
+    evictUndelivered(createdBefore) {
+      return Number(q.evict.run(createdBefore.getTime()).changes)
     },
     close() {
       db.close()

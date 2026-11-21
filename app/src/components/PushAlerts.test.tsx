@@ -12,6 +12,7 @@ function state(over: Partial<PushAlertsState> = {}): PushAlertsState {
   return {
     view: 'off',
     error: null,
+    serviceUnreachable: false,
     service: { lastRunAt: minutesAgo(3), lastRunOk: true, lastReadingAt: minutesAgo(60), lastReadingSource: 'manual', subscribers: 4 },
     enable: vi.fn(async () => undefined),
     disable: vi.fn(async () => undefined),
@@ -82,9 +83,21 @@ describe('PushAlerts', () => {
   ])('warns when the alert service last checked %s', (_label, lastRunAt) => {
     const base = state()
     renderWithLocale(<PushAlerts {...base} service={{ ...base.service!, lastRunAt }} now={NOW} />)
-    expect(screen.getByRole('status')).toHaveTextContent(
+    expect(screen.getByText(/The alert service has not checked/)).toHaveTextContent(
       'The alert service has not checked the river recently — alerts may be delayed.',
     )
+  })
+
+  it('warns when the alert service cannot be reached at all', () => {
+    renderWithLocale(<PushAlerts {...state({ service: null, serviceUnreachable: true })} now={NOW} />)
+    expect(screen.getByText(/The alert service has not checked/)).toHaveTextContent('The alert service has not checked the river recently')
+  })
+
+  it('unlocks the in-page chime on every tap', async () => {
+    const onGesture = vi.fn()
+    renderWithLocale(<PushAlerts {...state({ view: 'off' })} now={NOW} onGesture={onGesture} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Turn on alerts' }))
+    expect(onGesture).toHaveBeenCalledTimes(1)
   })
 
   it('shows nothing about the service before its status has loaded', () => {

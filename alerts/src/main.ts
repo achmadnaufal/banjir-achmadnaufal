@@ -6,7 +6,7 @@ import { readRiver, type RiverReading } from './river'
 import type { AlertKind } from './rules'
 import { broadcast, createWebPushSender } from './sender'
 import { openStore } from './store'
-import { startWatcher } from './watcher'
+import { startWatcher, watchdogDue } from './watcher'
 
 /**
  *   node main.cjs                       serve the API and run the watcher
@@ -41,6 +41,16 @@ function serve(config: Config): void {
     }),
   )
   server.listen(config.port, () => log(`listening on ${config.port}`))
+
+  // A hung run (or loop) never completes, and restart: unless-stopped won't
+  // restart a merely unhealthy container — so exit and let Docker restart us.
+  const startedAt = Date.now()
+  setInterval(() => {
+    if (watchdogDue(store.getState().lastRunAt, startedAt, Date.now())) {
+      log('watchdog: no completed run in 15 min, exiting for a restart')
+      process.exit(1)
+    }
+  }, 60_000).unref()
 
   const shutdown = () => {
     log('shutting down')

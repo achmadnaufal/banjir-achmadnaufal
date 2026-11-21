@@ -77,6 +77,8 @@ describe('createWebPushSender', () => {
     expect(subscription).toEqual({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } })
     expect(JSON.parse(body)).toEqual(payload('hi'))
     expect(options).toMatchObject({ TTL: 7200, urgency: 'high', vapidDetails: VAPID })
+    // A push service that never answers must not hang the watcher run forever.
+    expect(options.timeout).toBe(10_000)
   })
 
   it.each([404, 410])('maps a %i from the push service to gone', async (statusCode) => {

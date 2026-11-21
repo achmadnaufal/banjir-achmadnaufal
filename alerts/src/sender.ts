@@ -10,6 +10,8 @@ export type VapidConfig = { publicKey: string; privateKey: string; subject: stri
 
 /** A flood warning older than this is no longer worth delivering. */
 const TTL_SECONDS = 2 * 60 * 60
+/** A push service that never answers would otherwise hang the whole run. */
+const SEND_TIMEOUT_MS = 10_000
 const DEFAULT_CONCURRENCY = 10
 
 function statusOf(err: unknown): number | null {
@@ -31,7 +33,7 @@ export function createWebPushSender(vapid: VapidConfig, log: (msg: string) => vo
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
         JSON.stringify(payload),
-        { vapidDetails: vapid, TTL: TTL_SECONDS, urgency: 'high' },
+        { vapidDetails: vapid, TTL: TTL_SECONDS, urgency: 'high', timeout: SEND_TIMEOUT_MS },
       )
       return 'ok'
     } catch (err) {

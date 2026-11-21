@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { OWNER_TOKEN_KEY, SERVICE_STATUS_POLL_MS } from '../config/alerts'
+import { OWNER_TOKEN_KEY, SERVICE_STATUS_POLL_MS, SW_READY_TIMEOUT_MS } from '../config/alerts'
 import type { AlertsApi, PushEnv, ServiceStatus } from '../lib/pushClient'
 import { usePushAlerts } from './usePushAlerts'
 
@@ -51,6 +51,8 @@ function stubNotification(permission: NotificationPermission, answer: Notificati
   vi.stubGlobal('Notification', stub)
   return stub.requestPermission
 }
+
+const stableApi = fakeApi()
 
 beforeEach(() => {
   window.history.replaceState(null, '', '/')
@@ -160,6 +162,28 @@ describe('usePushAlerts', () => {
     expect(result.current.view).toBe('needs-install')
     await act(async () => undefined)
     expect(pushManager.getSubscription).not.toHaveBeenCalled()
+  })
+
+  it('stops waiting for a service worker that never starts, and says so', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    stubNotification('default')
+    const never = () => new Promise<ServiceWorkerRegistration>(() => undefined)
+    const { result } = renderHook(() => usePushAlerts('id', { api: stableApi, env: SUPPORTED, registration: never }))
+    expect(result.current.view).toBe('working')
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(SW_READY_TIMEOUT_MS)
+    })
+    expect(result.current.view).toBe('off')
+    expect(result.current.error).toMatch(/setting up/)
+  })
+
+  it('reports the service as unreachable when its status cannot be read', async () => {
+    stubNotification('default')
+    const api = { ...fakeApi(), status: vi.fn(async () => Promise.reject(new Error('offline'))) }
+    const { registration } = fakeRegistration(null)
+    const { result } = renderHook(() => usePushAlerts('id', { api, env: SUPPORTED, registration }))
+    await waitFor(() => expect(result.current.serviceUnreachable).toBe(true))
+    expect(result.current.service).toBeNull()
   })
 
   it('reads the service status now and every 5 minutes', async () => {

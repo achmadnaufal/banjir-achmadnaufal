@@ -25,6 +25,10 @@ export type ApiDeps = {
 
 const MAX_BODY_BYTES = 4096
 const MAX_SUBSCRIPTIONS = 2000
+/** New phones one caller may add a day — high enough for a carrier IP shared by neighbours. */
+const MAX_NEW_PER_IP_PER_DAY = 50
+/** When full, a phone that never received a push within this long makes room. */
+const EVICT_UNDELIVERED_AFTER_MS = 2 * 24 * 60 * 60 * 1000
 const HEALTHY_RUN_AGE_MS = 15 * 60 * 1000
 
 type Reply = { status: number; body: unknown }
@@ -71,6 +75,13 @@ function clientIp(req: IncomingMessage): string {
 export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: ServerResponse) => void {
   const perIp = createRateLimiter({ capacity: 10, refillEveryMs: 60_000 })
   const perTestEndpoint = createRateLimiter({ capacity: 1, refillEveryMs: 60_000 })
+  const newPerIpDaily = createRateLimiter({ capacity: MAX_NEW_PER_IP_PER_DAY, refillEveryMs: 24 * 60 * 60 * 1000 })
+
+  const hasRoom = (): boolean => {
+    if (deps.store.countSubscriptions() < MAX_SUBSCRIPTIONS) return true
+    deps.store.evictUndelivered(new Date(deps.now() - EVICT_UNDELIVERED_AFTER_MS))
+    return deps.store.countSubscriptions() < MAX_SUBSCRIPTIONS
+  }
 
   const healthz = (): Reply => {
     const { lastRunAt } = deps.store.getState()
@@ -92,12 +103,16 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
   }
 
   const subscribe = async (req: IncomingMessage): Promise<Reply> => {
-    if (!perIp.take(clientIp(req), deps.now())) return fail(429, 'too many requests')
     const parsed = parseSubscribeBody(await readJson(req))
     if ('error' in parsed) return fail(400, parsed.error)
     const { endpoint, keys } = parsed.subscription
-    if (!deps.store.hasSubscription(endpoint) && deps.store.countSubscriptions() >= MAX_SUBSCRIPTIONS) {
-      return fail(503, 'subscriptions full')
+    // Re-registering a phone we already have (every app launch) is never
+    // limited; only new phones count against the caller and the list size.
+    if (!deps.store.hasSubscription(endpoint)) {
+      const ip = clientIp(req)
+      const now = deps.now()
+      if (!perIp.take(ip, now) || !newPerIpDaily.take(ip, now)) return fail(429, 'too many requests')
+      if (!hasRoom()) return fail(503, 'subscriptions full')
     }
     const isOwner = sameSecret(parsed.ownerToken, deps.ownerToken)
     deps.store.upsertSubscription({ endpoint, ...keys, locale: parsed.locale, isOwner }, new Date(deps.now()))

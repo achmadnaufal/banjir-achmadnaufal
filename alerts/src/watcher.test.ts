@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { PushPayload } from './payload'
 import type { PushSender, SendResult } from './sender'
 import { INITIAL_SERVICE_STATE, openStore, type Store, type Subscription } from './store'
-import { OWNER_REPEAT_MS, ownerAlertDue, runOnce, startWatcher, type WatcherDeps } from './watcher'
+import { OWNER_REPEAT_MS, ownerAlertDue, runOnce, startWatcher, watchdogDue, WATCHDOG_MS, type WatcherDeps } from './watcher'
 
 const BPBD = readFileSync(resolve(__dirname, '../../app/src/test/fixtures/bpbd-charttma.json'), 'utf8')
 const at = (iso: string) => new Date(iso)
@@ -172,5 +172,18 @@ describe('startWatcher', () => {
     await vi.advanceTimersByTimeAsync(60_000)
     expect((hanging as unknown as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(2)
     watcher.stop()
+  })
+})
+
+describe('watchdogDue', () => {
+  const started = NOW.getTime()
+  it('gives a fresh process 15 minutes for its first run', () => {
+    expect(watchdogDue(null, started, started + WATCHDOG_MS - 1)).toBe(false)
+    expect(watchdogDue(null, started, started + WATCHDOG_MS + 1)).toBe(true)
+  })
+  it('fires once the last completed run is over 15 minutes old', () => {
+    const last = started + 60_000
+    expect(watchdogDue(last, started, last + WATCHDOG_MS - 1)).toBe(false)
+    expect(watchdogDue(last, started, last + WATCHDOG_MS + 1)).toBe(true)
   })
 })

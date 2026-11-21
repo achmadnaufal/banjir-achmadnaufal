@@ -21,6 +21,7 @@ const STATE: ServiceState = {
     lastPushedReadingAt: 2,
     lastSeenReadingAt: 3,
     belowCount: 1,
+    belowSince: 4,
   },
   bpbdTable: {
     points: [{ at: new Date('2026-11-21T19:00:00+07:00'), cm: 200 }],
@@ -59,6 +60,15 @@ describe('openStore', () => {
     expect(store.listSubscriptions()).toEqual([{ ...SUB, locale: 'en', isOwner: true }])
   })
 
+  it('never clears the owner flag on a re-subscribe', () => {
+    // The iPhone home-screen app re-registers on every load without a token.
+    const store = openStore(':memory:')
+    store.upsertSubscription(SUB, NOW)
+    store.setOwner(SUB.endpoint, true)
+    store.upsertSubscription({ ...SUB, isOwner: false }, NOW)
+    expect(store.listSubscriptions()[0].isOwner).toBe(true)
+  })
+
   it('lists subscriptions without timestamps or anything else', () => {
     const store = openStore(':memory:')
     store.upsertSubscription(SUB, NOW)
@@ -91,6 +101,22 @@ describe('openStore', () => {
     expect(store.listSubscriptions().find((s) => s.endpoint === phone.endpoint)?.isOwner).toBe(true)
     expect(store.listSubscriptions().find((s) => s.endpoint === SUB.endpoint)?.isOwner).toBe(false)
     expect(store.setOwner('https://web.push.apple.com/unknown', true)).toBe(false)
+  })
+
+  it('evicts only never-delivered, non-owner phones older than a cut-off', () => {
+    const store = openStore(':memory:')
+    const old = new Date('2026-11-18T00:00:00+07:00')
+    const ep = (s: string) => `https://web.push.apple.com/${s}`
+    store.upsertSubscription({ ...SUB, endpoint: ep('junk') }, old)
+    store.upsertSubscription({ ...SUB, endpoint: ep('delivered') }, old)
+    store.markDelivered(ep('delivered'), old)
+    store.upsertSubscription({ ...SUB, endpoint: ep('owner') }, old)
+    store.setOwner(ep('owner'), true)
+    store.upsertSubscription({ ...SUB, endpoint: ep('fresh') }, NOW)
+    expect(store.evictUndelivered(new Date('2026-11-20T00:00:00+07:00'))).toBe(1)
+    expect(store.listSubscriptions().map((s) => s.endpoint).sort()).toEqual(
+      [ep('delivered'), ep('fresh'), ep('owner')],
+    )
   })
 
   it('ignores markDelivered for an unknown endpoint', () => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ALERTS_API_BASE, OWNER_TOKEN_KEY, SERVICE_STATUS_POLL_MS } from '../config/alerts'
+import { ALERTS_API_BASE, OWNER_TOKEN_KEY, SERVICE_STATUS_POLL_MS, SW_READY_TIMEOUT_MS } from '../config/alerts'
 import type { Locale } from '../i18n/locale'
 import {
   createAlertsApi,
@@ -28,6 +28,8 @@ export type PushAlertsState = {
   view: PushAlertsView
   error: string | null
   service: ServiceStatus | null
+  /** The last status request failed: the service (or the whole VPS) may be down. */
+  serviceUnreachable: boolean
   enable(): Promise<void>
   disable(): Promise<void>
   /** Resolves true once the server has sent the test push. */
@@ -35,6 +37,24 @@ export type PushAlertsState = {
 }
 
 const defaultRegistration = () => navigator.serviceWorker.ready
+
+const SW_NOT_READY = 'This app is still setting up — reload the page and try again.'
+
+function withTimeout<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const id = setTimeout(() => reject(new Error(message)), ms)
+    p.then(
+      (v) => {
+        clearTimeout(id)
+        resolve(v)
+      },
+      (err: unknown) => {
+        clearTimeout(id)
+        reject(err)
+      },
+    )
+  })
+}
 
 function messageOf(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
@@ -70,9 +90,15 @@ export function usePushAlerts(locale: Locale, deps: PushAlertsDeps = {}): PushAl
   const api = useMemo(() => deps.api ?? createAlertsApi(ALERTS_API_BASE), [deps.api])
   const support = useMemo(() => detectPushSupport(deps.env ?? readPushEnv()), [deps.env])
   const registration = deps.registration ?? defaultRegistration
+  // navigator.serviceWorker.ready never settles if the worker can't install.
+  const swReady = useCallback(
+    () => withTimeout(registration(), SW_READY_TIMEOUT_MS, SW_NOT_READY),
+    [registration],
+  )
   const [view, setView] = useState<PushAlertsView>(support === 'supported' ? 'working' : support)
   const [error, setError] = useState<string | null>(null)
   const [service, setService] = useState<ServiceStatus | null>(null)
+  const [serviceUnreachable, setServiceUnreachable] = useState(false)
 
   useEffect(captureOwnerToken, [])
 
@@ -83,7 +109,7 @@ export function usePushAlerts(locale: Locale, deps: PushAlertsDeps = {}): PushAl
     let cancelled = false
     void (async () => {
       try {
-        const sub = await (await registration()).pushManager.getSubscription()
+        const sub = await (await swReady()).pushManager.getSubscription()
         if (cancelled) return
         if (sub === null) {
           setView(notificationPermission() === 'denied' ? 'denied' : 'off')
@@ -100,7 +126,7 @@ export function usePushAlerts(locale: Locale, deps: PushAlertsDeps = {}): PushAl
     return () => {
       cancelled = true
     }
-  }, [support, locale, api, registration])
+  }, [support, locale, api, swReady])
 
   // Status failures leave the last known status in place; the panel turns
   // its "checked N min ago" line into a warning once that goes stale.
@@ -108,8 +134,12 @@ export function usePushAlerts(locale: Locale, deps: PushAlertsDeps = {}): PushAl
     let cancelled = false
     const refresh = () => {
       api.status().then(
-        (s) => !cancelled && setService(s),
-        () => undefined,
+        (s) => {
+          if (cancelled) return
+          setService(s)
+          setServiceUnreachable(false)
+        },
+        () => !cancelled && setServiceUnreachable(true),
       )
     }
     refresh()
@@ -132,7 +162,7 @@ export function usePushAlerts(locale: Locale, deps: PushAlertsDeps = {}): PushAl
         setView(permission === 'denied' ? 'denied' : 'off')
         return
       }
-      const { pushManager } = await registration()
+      const { pushManager } = await swReady()
       const key = await api.key()
       const sub =
         (await pushManager.getSubscription()) ??
@@ -143,13 +173,13 @@ export function usePushAlerts(locale: Locale, deps: PushAlertsDeps = {}): PushAl
       setError(messageOf(err))
       setView('off')
     }
-  }, [api, locale, registration])
+  }, [api, locale, swReady])
 
   const disable = useCallback(async () => {
     setError(null)
     setView('working')
     try {
-      const sub = await (await registration()).pushManager.getSubscription()
+      const sub = await (await swReady()).pushManager.getSubscription()
       if (sub !== null) {
         // If the server can't be told, its next push gets a 410 and drops the phone.
         await api.unsubscribe(sub.endpoint).catch(() => undefined)
@@ -160,12 +190,12 @@ export function usePushAlerts(locale: Locale, deps: PushAlertsDeps = {}): PushAl
       setError(messageOf(err))
       setView('on')
     }
-  }, [api, registration])
+  }, [api, swReady])
 
   const sendTest = useCallback(async () => {
     setError(null)
     try {
-      const sub = await (await registration()).pushManager.getSubscription()
+      const sub = await (await swReady()).pushManager.getSubscription()
       if (sub === null) throw new Error('This phone is not subscribed')
       await api.test(sub.endpoint)
       return true
@@ -173,7 +203,7 @@ export function usePushAlerts(locale: Locale, deps: PushAlertsDeps = {}): PushAl
       setError(messageOf(err))
       return false
     }
-  }, [api, registration])
+  }, [api, swReady])
 
-  return { view, error, service, enable, disable, sendTest }
+  return { view, error, service, serviceUnreachable, enable, disable, sendTest }
 }

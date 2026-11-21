@@ -13,6 +13,8 @@ export type UseTransitionAlertResult = {
   permission: NotificationPermissionState
   requestPermission: () => Promise<NotificationPermissionState>
   testChime: () => void
+  /** Create/resume audio from a user tap so a later chime isn't blocked. */
+  unlockAudio: () => void
 }
 
 type AudioWindow = Window & {
@@ -103,5 +105,12 @@ export function useTransitionAlert(
     }
   }, [currentLevel, currentCm, playChime])
 
-  return { permission, requestPermission, testChime: playChime }
+  const unlockAudio = useCallback(() => {
+    const Ctor = getAudioContextCtor()
+    if (!Ctor) return
+    if (!audioCtxRef.current) audioCtxRef.current = new Ctor()
+    if (audioCtxRef.current.state === 'suspended') void audioCtxRef.current.resume()
+  }, [])
+
+  return { permission, requestPermission, testChime: playChime, unlockAudio }
 }

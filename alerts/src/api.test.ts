@@ -70,6 +70,14 @@ describe('API', () => {
     expect(store.countSubscriptions()).toBe(1)
   })
 
+  it('keeps a phone marked as the owner when the page re-registers it without a token', async () => {
+    const { post, store } = await start()
+    await post('/api/push/subscribe', subscribeBody())
+    store.setOwner(APPLE, true) // what `main.cjs owner-newest` does
+    await post('/api/push/subscribe', subscribeBody()) // next app launch, no token
+    expect(store.listSubscriptions()[0].isOwner).toBe(true)
+  })
+
   it('rejects a subscription to a non-push host', async () => {
     const { post, store } = await start()
     const res = await post('/api/push/subscribe', subscribeBody('https://evil.example/x'))
@@ -163,13 +171,57 @@ describe('API', () => {
     expect((await post('/api/push/subscribe', '{oops')).status).toBe(400)
   })
 
-  it('rate-limits sign-ups per caller', async () => {
+  it('rate-limits new phones per caller per minute', async () => {
     const { post } = await start()
     const statuses: number[] = []
-    for (let i = 0; i < 11; i++) statuses.push((await post('/api/push/subscribe', subscribeBody(), '9.9.9.9')).status)
+    for (let i = 0; i < 11; i++) statuses.push((await post('/api/push/subscribe', subscribeBody(`${APPLE}${i}`), '9.9.9.9')).status)
     expect(statuses.slice(0, 10).every((s) => s === 201)).toBe(true)
     expect(statuses[10]).toBe(429)
-    expect((await post('/api/push/subscribe', subscribeBody(), '8.8.8.8')).status).toBe(201)
+    expect((await post('/api/push/subscribe', subscribeBody(`${APPLE}x`), '8.8.8.8')).status).toBe(201)
+  })
+
+  it('caps new phones per caller at 50 a day, so one address cannot fill the list', async () => {
+    const { post, clock } = await start()
+    const statuses: number[] = []
+    for (let i = 0; i < 51; i++) {
+      clock.now += 7_000 // under the per-minute limit
+      statuses.push((await post('/api/push/subscribe', subscribeBody(`${APPLE}d${i}`), '6.6.6.6')).status)
+    }
+    expect(statuses.slice(0, 50).every((s) => s === 201)).toBe(true)
+    expect(statuses[50]).toBe(429)
+  })
+
+  it('never rate-limits re-registering a phone it already has', async () => {
+    // Every app launch re-registers; many residents can share one carrier IP.
+    const { post } = await start()
+    await post('/api/push/subscribe', subscribeBody(), '7.7.7.7')
+    const statuses: number[] = []
+    for (let i = 0; i < 15; i++) statuses.push((await post('/api/push/subscribe', subscribeBody(), '7.7.7.7')).status)
+    expect(statuses.every((s) => s === 201)).toBe(true)
+  })
+
+  it('makes room when full by dropping phones that never received a push in 2 days', async () => {
+    const store = openStore(':memory:')
+    const old = new Date(T0 - 3 * 24 * 3_600_000)
+    for (let i = 0; i < 2000; i++) {
+      store.upsertSubscription({ endpoint: `${APPLE}junk${i}`, p256dh: P256DH, auth: AUTH, locale: 'id', isOwner: false }, old)
+    }
+    const { post } = await start({ store })
+    expect((await post('/api/push/subscribe', subscribeBody())).status).toBe(201)
+    expect(store.hasSubscription(APPLE)).toBe(true)
+  })
+
+  it('keeps phones that have received pushes, and refuses when those fill the list', async () => {
+    const store = openStore(':memory:')
+    const old = new Date(T0 - 3 * 24 * 3_600_000)
+    for (let i = 0; i < 2000; i++) {
+      const endpoint = `${APPLE}real${i}`
+      store.upsertSubscription({ endpoint, p256dh: P256DH, auth: AUTH, locale: 'id', isOwner: false }, old)
+      store.markDelivered(endpoint, old)
+    }
+    const { post } = await start({ store })
+    expect((await post('/api/push/subscribe', subscribeBody())).status).toBe(503)
+    expect(store.countSubscriptions()).toBe(2000)
   })
 
   it('answers unknown paths with 404', async () => {

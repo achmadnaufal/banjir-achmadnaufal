@@ -21,6 +21,12 @@ export const WATCH_INTERVAL_MS = 5 * 60 * 1000
 export const OWNER_FAILING_MS = 60 * 60 * 1000
 export const OWNER_STALE_READING_MS = 3 * 60 * 60 * 1000
 export const OWNER_REPEAT_MS = 6 * 60 * 60 * 1000
+/** No completed run for this long means the loop is stuck: exit so Docker restarts us. */
+export const WATCHDOG_MS = 15 * 60 * 1000
+
+export function watchdogDue(lastRunAt: number | null, startedAt: number, now: number): boolean {
+  return now - (lastRunAt ?? startedAt) > WATCHDOG_MS
+}
 
 export function ownerAlertDue(s: ServiceState, now: Date): boolean {
   const t = now.getTime()
