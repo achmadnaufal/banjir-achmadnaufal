@@ -14,7 +14,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon-180x180.png'],
       manifest: {
         name: 'Monitor Banjir — Cinangka Paradisa Residence',
         short_name: 'Monitor Banjir',
@@ -23,11 +23,17 @@ export default defineConfig({
         background_color: '#0f172a',
         display: 'standalone',
         start_url: '/?source=pwa',
+        // PNGs (npm run generate-pwa-assets): iOS ignores SVG app icons.
         icons: [
-          { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
+          { src: '/pwa-64x64.png', sizes: '64x64', type: 'image/png' },
+          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
+        // Web Push handlers live in public/push-sw.js (closed-page alerts).
+        importScripts: ['push-sw.js'],
         globPatterns: ['**/*.{js,css,html,svg,ico,woff2}'],
         runtimeCaching: [
           {
