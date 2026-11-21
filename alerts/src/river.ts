@@ -36,7 +36,7 @@ export type RiverReading = {
 export type RiverRead = {
   reading: RiverReading | null
   bpbdTable: HistoryResponse | null
-  /** At least one source answered and parsed. */
+  /** The river was read: BPBD returned its table, or DSDA returned points. */
   ok: boolean
   problems: string[]
 }
@@ -115,7 +115,9 @@ export async function readRiver(
   return {
     reading: toRiverReading(dsda.value, bpbdTable, now),
     bpbdTable,
-    ok: dsda.value !== null || bpbd.value !== null,
+    // BPBD answering with its table proves it is up, even empty after midnight.
+    // DSDA answers 200 with an empty series for a dead gate, so only points count.
+    ok: bpbd.value !== null || (dsda.value?.points.length ?? 0) > 0,
     problems,
   }
 }

@@ -91,6 +91,18 @@ describe('readRiver', () => {
     expect(r.bpbdTable).toEqual(STORED_YESTERDAY)
   })
 
+  it('does not count an empty DSDA series as reading the river', async () => {
+    // DSDA answers 200 with nothing for gate 160; with BPBD down the watcher is blind.
+    const r = await readRiver(fakeFetch(() => ok(SILENT_SERIES), () => new Response('down', { status: 503 })), NOW, null)
+    expect(r.ok).toBe(false)
+  })
+
+  it('counts an empty BPBD table as answering (it resets at midnight)', async () => {
+    const empty = JSON.stringify({ time: '', ketinggian: '', siaga1: '', siaga2: '', siaga3: '' })
+    const r = await readRiver(fakeFetch(() => ok(SILENT_SERIES), () => ok(empty)), NOW, null)
+    expect(r.ok).toBe(true)
+  })
+
   it('has no reading when both sources fail and nothing is stored', async () => {
     const down = () => new Response('down', { status: 503 })
     const r = await readRiver(fakeFetch(down, down), NOW, null)
