@@ -123,6 +123,18 @@ function Legend() {
   )
 }
 
+/** When the forecast was fetched, and whether it is a saved copy during a retry. */
+function ForecastStatus({ fetchedAt, stale }: { fetchedAt: Date | null; stale: boolean }) {
+  const { t, tag } = useI18n()
+  if (!fetchedAt) return null
+  return (
+    <p aria-live="polite" className="text-[11px] leading-snug text-ink-3">
+      {t.rainUpdated(formatClock(fetchedAt, tag))}
+      {stale && <span className="text-ink-2"> · {t.rainStale}</span>}
+    </p>
+  )
+}
+
 export function Map({ theme }: { theme: ResolvedTheme }) {
   const { t } = useI18n()
   const region = useRainForecast('banjir:rain:region', REGION_GRID)
@@ -134,7 +146,12 @@ export function Map({ theme }: { theme: ResolvedTheme }) {
     : region.frames
       ? { frames: region.frames, grid: REGION_GRID }
       : null
-  const error = region.error ?? detail.error
+  const problem = region.problem ?? detail.problem
+  // The older of the two layers is the honest "updated" time for the map.
+  const fetchedTimes = [region.fetchedAt, detail.fetchedAt].filter((d): d is Date => d !== null)
+  const fetchedAt = fetchedTimes.length
+    ? new Date(Math.min(...fetchedTimes.map((d) => d.getTime())))
+    : null
   const { ref: sectionRef, inView } = useInView<HTMLElement>()
   const playback = useRainPlayback(frames.length, inView)
 
@@ -167,8 +184,10 @@ export function Map({ theme }: { theme: ResolvedTheme }) {
       </Suspense>
 
       <div className="space-y-3 px-4 py-3">
-        {error && frames.length === 0 ? (
-          <p className="text-sm text-ink-3">{t.rainFailed(error.message)}</p>
+        {problem && frames.length === 0 ? (
+          <p aria-live="polite" className="text-sm text-ink-3">
+            {t.rainProblem[problem]}
+          </p>
         ) : frames.length === 0 ? (
           <p className="text-sm text-ink-3">{t.rainLoading}</p>
         ) : (
@@ -178,6 +197,7 @@ export function Map({ theme }: { theme: ResolvedTheme }) {
           </>
         )}
         <Legend />
+        <ForecastStatus fetchedAt={fetchedAt} stale={problem !== null && frames.length > 0} />
         <p className="text-[11px] leading-snug text-ink-3">{t.rainSource}</p>
       </div>
     </section>

@@ -111,13 +111,70 @@ describe('Map (rain forecast)', () => {
     expect(fetchMock.mock.calls.length).toBe(calls)
   })
 
-  it('explains when the forecast cannot load', async () => {
+  it('explains a broken response without dumping the request URL', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => ({ ok: true, status: 200, text: async () => 'not json' }) as Response),
     )
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     renderMap()
-    expect(await screen.findByText(/Rain forecast unavailable/)).toBeInTheDocument()
+    expect(await screen.findByText(/forecast service returned an error/i)).toBeInTheDocument()
+  })
+
+  describe('when Open-Meteo rate-limits (HTTP 429)', () => {
+    const rateLimited = () =>
+      vi.fn(async () => ({ ok: false, status: 429, text: async () => '{"error":true}' }) as Response)
+
+    beforeEach(() => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('says the service is busy, not a wall of URL', async () => {
+      vi.stubGlobal('fetch', rateLimited())
+      const { container } = renderMap()
+      expect(await screen.findByText(/forecast service is busy/i)).toBeInTheDocument()
+      expect(container.textContent).not.toContain('api.open-meteo.com')
+    })
+
+    it('keeps showing the last saved forecast and says so', async () => {
+      // A forecast saved two hours ago, in the cache format the page writes.
+      const nowSec = Math.floor(Date.now() / 1000)
+      const savedAt = Date.now() - 2 * 3_600_000
+      const okFetch = vi.fn(async (url: string) => {
+        const count = new URL(url).searchParams.get('latitude')!.split(',').length
+        const body = JSON.stringify(forecastBody(nowSec, count))
+        return { ok: true, status: 200, text: async () => body } as Response
+      })
+      vi.stubGlobal('fetch', okFetch)
+      const first = renderMap()
+      await screen.findByRole('slider', { name: 'Forecast hour' })
+      first.unmount()
+      for (const key of Object.keys(localStorage)) {
+        const entry = JSON.parse(localStorage.getItem(key)!)
+        localStorage.setItem(key, JSON.stringify({ ...entry, fetchedAt: savedAt }))
+      }
+
+      vi.stubGlobal('fetch', rateLimited())
+      renderMap()
+      expect(await screen.findByRole('slider', { name: 'Forecast hour' })).toBeInTheDocument()
+      expect(await screen.findByText(/last saved forecast/i)).toBeInTheDocument()
+    })
+
+    it('retries by itself once the per-minute window has passed', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      const fetchMock = rateLimited()
+      vi.stubGlobal('fetch', fetchMock)
+      renderMap()
+      await screen.findByText(/forecast service is busy/i)
+      const before = fetchMock.mock.calls.length
+      await vi.advanceTimersByTimeAsync(64_000)
+      expect(fetchMock.mock.calls.length).toBe(before)
+      await vi.advanceTimersByTimeAsync(2_000)
+      expect(fetchMock.mock.calls.length).toBeGreaterThan(before)
+    })
   })
 })

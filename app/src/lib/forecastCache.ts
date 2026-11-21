@@ -24,6 +24,22 @@ export function readCachedBody(
   nowMs: number,
   maxAgeMs: number,
 ): unknown | null {
+  return readCachedEntry(store, key, url, nowMs, maxAgeMs)?.body ?? null
+}
+
+export type CachedEntry = { body: unknown; fetchedAt: number }
+
+/**
+ * Same rules as `readCachedBody`, plus when the body was fetched — so a
+ * stale copy served after a failed refresh can say how old it is.
+ */
+export function readCachedEntry(
+  store: KeyValueStore | null,
+  key: string,
+  url: string,
+  nowMs: number,
+  maxAgeMs: number,
+): CachedEntry | null {
   if (!store) return null
   try {
     const raw = store.getItem(key)
@@ -32,7 +48,7 @@ export function readCachedBody(
     if (!isEntry(entry) || entry.url !== url) return null
     const age = nowMs - entry.fetchedAt
     if (age < 0 || age > maxAgeMs) return null
-    return JSON.parse(entry.body)
+    return { body: JSON.parse(entry.body), fetchedAt: entry.fetchedAt }
   } catch {
     return null
   }

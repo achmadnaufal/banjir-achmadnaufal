@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readCachedBody, writeCachedBody, type KeyValueStore } from './forecastCache'
+import { readCachedBody, readCachedEntry, writeCachedBody, type KeyValueStore } from './forecastCache'
 
 function memoryStore(): KeyValueStore & { data: Map<string, string> } {
   const data = new Map<string, string>()
@@ -60,5 +60,20 @@ describe('forecast cache', () => {
     expect(() => writeCachedBody(broken, 'k', URL_A, '[]', 0)).not.toThrow()
     expect(readCachedBody(broken, 'k', URL_A, 0, MAX_AGE)).toBeNull()
     expect(readCachedBody(null, 'k', URL_A, 0, MAX_AGE)).toBeNull()
+  })
+})
+
+describe('readCachedEntry', () => {
+  it('returns the body with when it was fetched', () => {
+    const store = memoryStore()
+    writeCachedBody(store, 'k', URL_A, '[7]', 5000)
+    expect(readCachedEntry(store, 'k', URL_A, 5500, MAX_AGE)).toEqual({ body: [7], fetchedAt: 5000 })
+  })
+
+  it('applies the same freshness and URL rules as readCachedBody', () => {
+    const store = memoryStore()
+    writeCachedBody(store, 'k', URL_A, '[7]', 5000)
+    expect(readCachedEntry(store, 'k', URL_A, 7000, MAX_AGE)).toBeNull()
+    expect(readCachedEntry(store, 'k', `${URL_A}x`, 5500, MAX_AGE)).toBeNull()
   })
 })

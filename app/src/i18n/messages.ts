@@ -1,3 +1,4 @@
+import type { ForecastProblem } from '../lib/forecastRetry'
 import type { Locale } from './locale'
 
 /**
@@ -85,7 +86,10 @@ export type Messages = {
   rainHeading: string
   rainSource: string
   rainLoading: string
-  rainFailed: (reason: string) => string
+  /** One line per failure kind — never the raw error, whose URL runs to 5 KB. */
+  rainProblem: Record<ForecastProblem, string>
+  rainStale: string
+  rainUpdated: (time: string) => string
   rainPlay: string
   rainPause: string
   rainSlider: string
@@ -211,7 +215,13 @@ const en: Messages = {
   rainHeading: 'Rain forecast · next 12 h',
   rainSource: 'Weather-model forecast from Open-Meteo, not radar. The dashed box is the catchment upstream of the gate.',
   rainLoading: 'Loading rain forecast…',
-  rainFailed: (reason) => `Rain forecast unavailable: ${reason}`,
+  rainProblem: {
+    busy: 'The forecast service is busy right now. Retrying in about a minute.',
+    offline: 'Can’t reach the forecast service. Retrying shortly.',
+    unavailable: 'The forecast service returned an error. Retrying shortly.',
+  },
+  rainStale: 'Showing the last saved forecast while it retries.',
+  rainUpdated: (time) => `Forecast updated ${time} WIB`,
   rainPlay: 'Play',
   rainPause: 'Pause',
   rainSlider: 'Forecast hour',
@@ -333,7 +343,13 @@ const id: Messages = {
   rainHeading: 'Prakiraan hujan · 12 jam ke depan',
   rainSource: 'Prakiraan model cuaca dari Open-Meteo, bukan radar. Kotak putus-putus adalah daerah hulu pintu air.',
   rainLoading: 'Memuat prakiraan hujan…',
-  rainFailed: (reason) => `Prakiraan hujan tidak tersedia: ${reason}`,
+  rainProblem: {
+    busy: 'Layanan prakiraan sedang sibuk. Mencoba lagi dalam sekitar satu menit.',
+    offline: 'Tidak dapat terhubung ke layanan prakiraan. Mencoba lagi sebentar lagi.',
+    unavailable: 'Layanan prakiraan mengembalikan galat. Mencoba lagi sebentar lagi.',
+  },
+  rainStale: 'Menampilkan prakiraan tersimpan terakhir sambil mencoba lagi.',
+  rainUpdated: (time) => `Prakiraan diperbarui ${time} WIB`,
   rainPlay: 'Putar',
   rainPause: 'Jeda',
   rainSlider: 'Jam prakiraan',

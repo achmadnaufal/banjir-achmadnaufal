@@ -90,6 +90,13 @@ export const FORECAST_REFRESH_MS = 60 * 60 * 1000
  */
 export const FORECAST_CACHE_MAX_AGE_MS = 50 * 60 * 1000
 
+/**
+ * After a failed refresh (rate limit, offline), fall back to a saved copy up
+ * to this old. Frames are re-filtered against the current time, so an older
+ * copy just shows fewer of its remaining future hours.
+ */
+export const FORECAST_STALE_MAX_AGE_MS = 12 * 60 * 60 * 1000
+
 /** Playback: one forecast hour per 650 ms → the 12 h loop runs in ~8 s. */
 export const PLAYBACK_HOUR_MS = 650
 export const PLAYBACK_END_HOLD_MS = 1200
