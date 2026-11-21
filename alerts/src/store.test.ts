@@ -77,6 +77,22 @@ describe('openStore', () => {
     expect(store.hasSubscription(SUB.endpoint)).toBe(false)
   })
 
+  it('finds the newest subscription and can mark it as the owner', () => {
+    const store = openStore(':memory:')
+    expect(store.newestSubscription()).toBeNull()
+    store.upsertSubscription(SUB, new Date('2026-11-21T20:00:00+07:00'))
+    const phone = { ...SUB, endpoint: 'https://web.push.apple.com/NEWEST' }
+    store.upsertSubscription(phone, new Date('2026-11-21T20:05:00+07:00'))
+    expect(store.newestSubscription()).toEqual({
+      endpoint: phone.endpoint,
+      createdAt: new Date('2026-11-21T20:05:00+07:00').getTime(),
+    })
+    expect(store.setOwner(phone.endpoint, true)).toBe(true)
+    expect(store.listSubscriptions().find((s) => s.endpoint === phone.endpoint)?.isOwner).toBe(true)
+    expect(store.listSubscriptions().find((s) => s.endpoint === SUB.endpoint)?.isOwner).toBe(false)
+    expect(store.setOwner('https://web.push.apple.com/unknown', true)).toBe(false)
+  })
+
   it('ignores markDelivered for an unknown endpoint', () => {
     const store = openStore(':memory:')
     store.markDelivered('https://web.push.apple.com/gone', NOW)

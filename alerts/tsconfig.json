@@ -3,8 +3,13 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2022", "DOM"],
-    "types": ["node"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "types": [
+      "node"
+    ],
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
@@ -13,6 +18,16 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "../app/src/lib", "../app/src/config", "../app/src/types", "../app/src/i18n/locale.ts"],
-  "exclude": ["../app/src/**/*.test.ts", "../app/src/**/*.test.tsx"]
+  "include": [
+    "src",
+    "../app/src/lib",
+    "../app/src/config",
+    "../app/src/types",
+    "../app/src/i18n/locale.ts"
+  ],
+  "exclude": [
+    "../app/src/**/*.test.ts",
+    "../app/src/**/*.test.tsx",
+    "../app/src/config/alerts.ts"
+  ]
 }

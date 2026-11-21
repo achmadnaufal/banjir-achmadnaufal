@@ -52,6 +52,9 @@ export interface Store {
   countSubscriptions(): number
   hasSubscription(endpoint: string): boolean
   markDelivered(endpoint: string, now: Date): void
+  /** The most recently created subscription, for marking the owner's phone. */
+  newestSubscription(): { endpoint: string; createdAt: number } | null
+  setOwner(endpoint: string, isOwner: boolean): boolean
   close(): void
 }
 
@@ -120,6 +123,8 @@ export function openStore(path: string): Store {
     count: db.prepare('SELECT COUNT(*) AS n FROM subscriptions'),
     has: db.prepare('SELECT 1 AS hit FROM subscriptions WHERE endpoint = ?'),
     delivered: db.prepare('UPDATE subscriptions SET last_ok_at = ? WHERE endpoint = ?'),
+    newest: db.prepare('SELECT endpoint, created_at FROM subscriptions ORDER BY created_at DESC LIMIT 1'),
+    setOwner: db.prepare('UPDATE subscriptions SET is_owner = ? WHERE endpoint = ?'),
   }
 
   return {
@@ -147,6 +152,13 @@ export function openStore(path: string): Store {
     },
     markDelivered(endpoint, now) {
       q.delivered.run(now.getTime(), endpoint)
+    },
+    newestSubscription() {
+      const row = q.newest.get() as { endpoint: string; created_at: number } | undefined
+      return row === undefined ? null : { endpoint: row.endpoint, createdAt: Number(row.created_at) }
+    },
+    setOwner(endpoint, isOwner) {
+      return Number(q.setOwner.run(isOwner ? 1 : 0, endpoint).changes) > 0
     },
     close() {
       db.close()

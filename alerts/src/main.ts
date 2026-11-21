@@ -11,6 +11,11 @@ import { startWatcher } from './watcher'
 /**
  *   node main.cjs                       serve the API and run the watcher
  *   node main.cjs sample alert|allClear send a sample push to owner phones only
+ *   node main.cjs owner-newest          mark the newest subscription as the owner's
+ *
+ * owner-newest exists because an iPhone home-screen app can't receive the
+ * ?owner= link: it has its own storage and always opens at the start URL.
+ * Run it right after the owner turns alerts on, while theirs is the newest.
  */
 
 // Server process: logs go to stderr for `docker logs`.
@@ -73,10 +78,25 @@ async function sample(config: Config, kind: AlertKind): Promise<void> {
   store.close()
 }
 
+function markNewestAsOwner(config: Config): void {
+  const store = openStore(config.dbPath)
+  const newest = store.newestSubscription()
+  if (newest === null) {
+    log('owner-newest: no subscriptions yet')
+    process.exitCode = 1
+  } else {
+    store.setOwner(newest.endpoint, true)
+    const ageMin = Math.round((Date.now() - newest.createdAt) / 60_000)
+    log(`owner-newest: marked the ${new URL(newest.endpoint).host} subscription created ${ageMin} min ago`)
+  }
+  store.close()
+}
+
 function main(): void {
   const config = loadConfig(process.env)
   const [command, arg] = process.argv.slice(2)
   if (command === undefined) return serve(config)
+  if (command === 'owner-newest') return markNewestAsOwner(config)
   if (command === 'sample' && (arg === 'alert' || arg === 'allClear')) {
     sample(config, arg).catch((err: unknown) => {
       log(`sample failed: ${err instanceof Error ? err.message : String(err)}`)
@@ -84,7 +104,7 @@ function main(): void {
     })
     return
   }
-  log('usage: node main.cjs [sample alert|allClear]')
+  log('usage: node main.cjs [sample alert|allClear | owner-newest]')
   process.exitCode = 2
 }
 
