@@ -14,12 +14,16 @@ const HISTORY = '2026-09-19 09.00.00,270;2026-09-19 09.30.00,280|3500;2500;1500'
 
 describe('App smoke', () => {
   beforeEach(() => {
+    // The fixtures are dated 19 Sep; on the real clock they fall out of the
+    // 24h window and the stats ("24h peak") never render.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-19T10:05:00+07:00'))
     vi.stubGlobal('fetch', vi.fn(async (url: string) => ({
       ok: true, status: 200,
       text: async () => (String(url).includes('xmldata') ? XML : HISTORY),
     } as Response)))
   })
-  afterEach(() => { vi.unstubAllGlobals(); localStorage.clear() })
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); localStorage.clear() })
 
   it('shows the level, the official band name and the legend', async () => {
     render(<App />)
@@ -29,7 +33,7 @@ describe('App smoke', () => {
     // 280cm sits in the 250-350 band -> SIAGA per the official legend.
     expect(screen.getByRole('status')).toHaveTextContent('SIAGA')
     const legend = screen.getByRole('region', { name: /legend/i })
-    expect(legend).toHaveTextContent('> 350 cm')
+    expect(legend).toHaveTextContent('≥ 350 cm')
     expect(legend).toHaveTextContent('BAHAYA')
     expect(screen.queryByText(/Something went wrong/i)).not.toBeInTheDocument()
   })

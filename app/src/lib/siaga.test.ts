@@ -15,13 +15,16 @@ describe('classify', () => {
   it.each<[number, ReturnType<typeof classify>]>([
     [0, 'normal'],
     [149, 'normal'],
-    [150, 'normal'],
+    // A level exactly on a threshold is in that band (WASPADA "150 - 250 cm").
+    [150, 'siaga3'],
     [151, 'siaga3'],
     [200, 'siaga3'],
-    [250, 'siaga3'],
+    [249, 'siaga3'],
+    [250, 'siaga2'],
     [251, 'siaga2'],
     [300, 'siaga2'],
-    [350, 'siaga2'],
+    [349, 'siaga2'],
+    [350, 'siaga1'],
     [351, 'siaga1'],
     [500, 'siaga1'],
     [9999, 'siaga1'],
@@ -54,7 +57,7 @@ describe('siagaMeta', () => {
 describe('bands', () => {
   it('lists the four legend rows highest-first', () => {
     expect(bands(T)).toEqual([
-      { level: 'siaga1', label: 'BAHAYA', tone: 'red', rank: 3, rangeText: '> 350 cm' },
+      { level: 'siaga1', label: 'BAHAYA', tone: 'red', rank: 3, rangeText: '≥ 350 cm' },
       { level: 'siaga2', label: 'SIAGA', tone: 'orange', rank: 2, rangeText: '250 - 350 cm' },
       { level: 'siaga3', label: 'WASPADA', tone: 'yellow', rank: 1, rangeText: '150 - 250 cm' },
       { level: 'normal', label: 'NORMAL', tone: 'green', rank: 0, rangeText: '< 150 cm' },
@@ -64,7 +67,7 @@ describe('bands', () => {
   it('follows upstream thresholds rather than hardcoding the fallback', () => {
     const custom: ThresholdsCm = { siaga1: 400, siaga2: 300, siaga3: 200 }
     expect(bands(custom).map((b) => b.rangeText)).toEqual([
-      '> 400 cm',
+      '≥ 400 cm',
       '300 - 400 cm',
       '200 - 300 cm',
       '< 200 cm',
@@ -74,7 +77,7 @@ describe('bands', () => {
   it('rounds fractional thresholds from the mm-to-cm conversion', () => {
     const fractional: ThresholdsCm = { siaga1: 350.4, siaga2: 249.5, siaga3: 150.6 }
     expect(bands(fractional).map((b) => b.rangeText)).toEqual([
-      '> 350 cm',
+      '≥ 350 cm',
       '250 - 350 cm',
       '151 - 250 cm',
       '< 151 cm',

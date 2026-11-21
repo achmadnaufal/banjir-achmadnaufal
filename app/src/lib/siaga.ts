@@ -27,10 +27,11 @@ const META: Record<SiagaLevel, SiagaMeta> = {
   normal: { label: 'NORMAL', tone: 'green', rank: 0 },
 }
 
+/** A level exactly on a threshold is in that band, as the legend lists it. */
 export function classify(cm: number, t: ThresholdsCm): SiagaLevel {
-  if (cm > t.siaga1) return 'siaga1'
-  if (cm > t.siaga2) return 'siaga2'
-  if (cm > t.siaga3) return 'siaga3'
+  if (cm >= t.siaga1) return 'siaga1'
+  if (cm >= t.siaga2) return 'siaga2'
+  if (cm >= t.siaga3) return 'siaga3'
   return 'normal'
 }
 
@@ -53,7 +54,7 @@ export function bands(t: ThresholdsCm): Band[] {
   const s2 = Math.round(t.siaga2)
   const s3 = Math.round(t.siaga3)
   const rows: Array<[SiagaLevel, string]> = [
-    ['siaga1', `> ${s1} cm`],
+    ['siaga1', `≥ ${s1} cm`],
     ['siaga2', `${s2} - ${s1} cm`],
     ['siaga3', `${s3} - ${s2} cm`],
     ['normal', `< ${s3} cm`],

@@ -16,7 +16,7 @@ describe('KeteranganLegend', () => {
   it('renders the four official bands highest-first', () => {
     renderWithLocale(<KeteranganLegend thresholdsCm={T} />, 'id')
     expect(rows().map((li) => li.textContent)).toEqual([
-      '> 350 cmBAHAYA',
+      '≥ 350 cmBAHAYA',
       '250 - 350 cmSIAGA',
       '150 - 250 cmWASPADA',
       '< 150 cmNORMAL',
@@ -36,7 +36,7 @@ describe('KeteranganLegend', () => {
 
   it('reflects upstream thresholds rather than the hardcoded fallback', () => {
     renderWithLocale(<KeteranganLegend thresholdsCm={{ siaga1: 400, siaga2: 300, siaga3: 200 }} />)
-    expect(screen.getByText('> 400 cm')).toBeInTheDocument()
+    expect(screen.getByText('≥ 400 cm')).toBeInTheDocument()
     expect(screen.getByText('< 200 cm')).toBeInTheDocument()
   })
 
