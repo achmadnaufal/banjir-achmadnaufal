@@ -60,3 +60,27 @@ Set via `gh secret set CLOUDFLARE_API_TOKEN` etc. or the repo Settings UI.
 - **Web Analytics**: enable in the Pages project settings (free, no code change).
 - **Real PNG icons**: drop `icons/icon-192.png`, `icons/icon-512.png`, `icons/icon-maskable-512.png` into `app/public/` and update `vite.config.ts`'s manifest. The current SVG-only icon works but a maskable PNG looks crisper on Android.
 - **Always-on alerts**: out of scope for the current build (browser-only by design). If you later want notifications when the tab is closed, add a Cloudflare Worker on a 10-min cron that calls the Telegram Bot API on rising transitions.
+
+## Alerts service (VPS)
+
+The Web Push watcher in `alerts/` runs on the Vultr VPS (`root@45.77.33.192`) as Compose project `banjir-alerts` in `/opt/banjir-alerts`, reached through its own Cloudflare Tunnel at `https://banjir-api.achmadnaufal.com`.
+
+One-time (already done 2026-11-21; safe to re-run):
+
+```sh
+python3.12 alerts/deploy/cloudflare/setup_tunnel.py --verify-only
+python3.12 alerts/deploy/cloudflare/setup_tunnel.py   # tunnel, DNS, and /opt/banjir-alerts/deploy/.env
+```
+
+It uses mykid's Cloudflare token (`~/.config/mykid/cf_token`) and keeps the VAPID keys and owner token in `~/.config/banjir-alerts/` (mode 600). **Never delete those**: new VAPID keys cut off every subscribed phone.
+
+Every deploy:
+
+```sh
+alerts/deploy/deploy.sh
+```
+
+It refuses to run unless `hbbs`, `hbbr`, `wg-easy`, `mykid-app-1` and `mykid-cloudflared-1` are up, runs the tests, builds `dist/main.cjs`, rsyncs, rebuilds the container, waits for healthy, re-checks the neighbours and checks `/healthz` from outside.
+
+Sample push to the owner's phone only: `ssh root@45.77.33.192 'cd /opt/banjir-alerts/deploy && docker compose exec app node main.cjs sample alert'` (or `allClear`).
+

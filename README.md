@@ -42,7 +42,17 @@ The DSDA sensor feed is primary. When it goes quiet (gate 160 dropped out of `xm
 
 ## Alert design
 
-Browser Notification API + a synthetic Web Audio chime fires when `detectTransition(prev, next).direction === 'rising'`. Foreground-only — alerts do not fire when the tab is closed. Pin to home screen and keep the tab alive for monitoring.
+**In the open page:** Browser Notification API + a synthetic Web Audio chime fires when `detectTransition(prev, next).direction === 'rising'`.
+
+**With the page closed (Web Push):** `alerts/` is a small Node 22 + TypeScript service on the owner's Vultr VPS, at `https://banjir-api.achmadnaufal.com` (its own Cloudflare Tunnel, its own Compose project `banjir-alerts`, beside mykid/RustDesk/wg-easy). Every 5 min it reads DSDA + BPBD with the page's own `app/src/lib` logic and pushes to subscribed phones:
+
+- WASPADA (≥ 150 cm) or higher → push, then at most once per hour of readings; a higher band pushes immediately; "back to normal" after two readings in a row below 150 cm. Readings older than 2 h never push. Rules: `alerts/src/rules.ts`.
+- Subscriptions (anonymous endpoint + keys + language) and state live in SQLite in a Docker volume.
+- If the watcher can't read the river for > 1 h, or the newest reading is > 3 h old, only the **owner's** phone gets a "can't read the river" push (every 6 h while it lasts). The owner marks their phone by opening the page once with `?owner=<token>` (token in `~/.config/banjir-alerts/owner_token`).
+- Health: `GET /api/push/status` (last run, last reading, subscriber count) and `/healthz`.
+- iPhone: push needs iOS 16.4+ and the page **added to the Home Screen** from Safari; a bookmark or Safari tab can't receive pushes.
+
+Deploy: see [`DEPLOY.md`](./DEPLOY.md#alerts-service-vps).
 
 ## Deploy
 
