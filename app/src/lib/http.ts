@@ -4,6 +4,9 @@ import { UpstreamError } from '../types/upstream'
 export type FetchOptions = {
   timeoutMs?: number
   signal?: AbortSignal
+  method?: 'GET' | 'POST'
+  /** A form body keeps a cross-origin POST "simple", so no CORS preflight. */
+  body?: URLSearchParams
 }
 
 export async function fetchText(url: string, opts: FetchOptions = {}): Promise<string> {
@@ -15,7 +18,12 @@ export async function fetchText(url: string, opts: FetchOptions = {}): Promise<s
     else opts.signal.addEventListener('abort', () => controller.abort(), { once: true })
   }
   try {
-    const res = await fetch(url, { signal: controller.signal, cache: 'no-cache' })
+    const res = await fetch(url, {
+      method: opts.method ?? 'GET',
+      body: opts.body,
+      signal: controller.signal,
+      cache: 'no-cache',
+    })
     if (!res.ok) {
       throw new UpstreamError('http', `HTTP ${res.status} from ${url}`, res.status)
     }

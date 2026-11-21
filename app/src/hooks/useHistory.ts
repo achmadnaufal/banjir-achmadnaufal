@@ -33,6 +33,11 @@ function rangeBounds(range: Range, now: Date): Bounds {
   return { fetchStart, fetchEnd, windowStart }
 }
 
+/** Where a range's chart window starts, for trimming data fetched elsewhere. */
+export function rangeWindowStart(range: Range, now: Date): Date {
+  return rangeBounds(range, now).windowStart
+}
+
 export type UseHistoryState = {
   data: HistoryResponse | null
   error: Error | null

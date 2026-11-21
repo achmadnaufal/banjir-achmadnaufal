@@ -1,12 +1,19 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
-import { COMMUNITY, PESANGGRAHAN, STALE_AFTER_MS } from './config/station'
+import { COMMUNITY, PESANGGRAHAN } from './config/station'
 import { useLatest } from './hooks/useLatest'
-import { useHistory, type Range } from './hooks/useHistory'
+import { rangeWindowStart, useHistory, type Range } from './hooks/useHistory'
+import { useManualReadings } from './hooks/useManualReadings'
 import { useTheme } from './hooks/useTheme'
 import { useTransitionAlert } from './hooks/useTransitionAlert'
 import { LocaleProvider } from './i18n/LocaleProvider'
 import { useI18n } from './i18n/useI18n'
-import { freshestSnapshot } from './lib/analytics'
+import {
+  pickReading,
+  sensorReading,
+  staleAfterMs,
+  withManualPoints,
+  type StationDefaults,
+} from './lib/manualFallback'
 import { classify } from './lib/siaga'
 import { AboutSection } from './components/AboutSection'
 import { AlertOptIn } from './components/AlertOptIn'
@@ -26,6 +33,15 @@ import { ThemeToggle } from './components/ThemeToggle'
 const SiagaChart = lazy(() =>
   import('./components/SiagaChart').then((m) => ({ default: m.SiagaChart })),
 )
+
+const STATION_DEFAULTS: StationDefaults = {
+  id: PESANGGRAHAN.id,
+  name: PESANGGRAHAN.name,
+  location: PESANGGRAHAN.river,
+  lat: PESANGGRAHAN.lat,
+  lng: PESANGGRAHAN.lng,
+  thresholdsCm: PESANGGRAHAN.fallbackThresholdsCm,
+}
 
 function ChartPlaceholder({ children }: { children: React.ReactNode }) {
   return (
@@ -55,10 +71,39 @@ function Dashboard() {
   // charted range, reuse the same response instead of fetching it twice.
   const stats24h = useHistory(range === '24h' ? null : '24h')
   const stats = range === '24h' ? history : stats24h
+  const manual = useManualReadings()
 
-  const displaySnapshot = useMemo(
-    () => (latest.data ? freshestSnapshot(latest.data, stats.data) : null),
-    [latest.data, stats.data],
+  // DSDA's sensor first (snapshot or time-series, whichever is newer); BPBD's
+  // hourly manual table only when it is newer than both.
+  const reading = useMemo(
+    () =>
+      pickReading(
+        sensorReading(latest.data, stats.data, STATION_DEFAULTS),
+        manual.data,
+        STATION_DEFAULTS,
+      ),
+    [latest.data, stats.data, manual.data],
+  )
+  const displaySnapshot = reading?.snapshot ?? null
+  const source = reading?.source ?? 'sensor'
+  // Windows for the manual points end at the reading they lead up to.
+  const readingAt = displaySnapshot?.observedAt ?? null
+
+  // While the manual reading is on show, carry the chart and the 24h stats
+  // past the sensor's last point with it, so they don't freeze or go empty.
+  const chartData = useMemo(
+    () =>
+      readingAt === null
+        ? history.data
+        : withManualPoints(history.data, manual.data, rangeWindowStart(range, readingAt), source),
+    [history.data, manual.data, range, readingAt, source],
+  )
+  const statsData = useMemo(
+    () =>
+      readingAt === null
+        ? stats.data
+        : withManualPoints(stats.data, manual.data, rangeWindowStart('24h', readingAt), source),
+    [stats.data, manual.data, readingAt, source],
   )
 
   const currentLevel =
@@ -71,13 +116,12 @@ function Dashboard() {
   // published KETERANGAN values only until the first successful fetch.
   const thresholdsCm =
     displaySnapshot?.thresholdsCm ??
-    history.data?.thresholdsCm ??
+    chartData?.thresholdsCm ??
     PESANGGRAHAN.fallbackThresholdsCm
 
   // useHistory keeps the previous response in state across a range change, so
   // a refetch holds its frame. Dimming it — rather than swapping in a
   // skeleton — avoids a flash and a layout jump under the reader's thumb.
-  const chartData = history.data
   const chartIsRefreshing = history.isLoading && chartData !== null
 
   const alertCopy = useMemo(
@@ -101,12 +145,15 @@ function Dashboard() {
       </header>
 
       <main className="space-y-3 py-4">
-        {displaySnapshot ? (
+        {reading ? (
           <StatusCard
-            snapshot={displaySnapshot}
-            isStale={now.getTime() - displaySnapshot.observedAt.getTime() > STALE_AFTER_MS}
+            snapshot={reading.snapshot}
+            source={reading.source}
+            isStale={
+              now.getTime() - reading.snapshot.observedAt.getTime() > staleAfterMs(reading.source)
+            }
             now={now}
-            stats={stats.data}
+            stats={statsData}
           />
         ) : latest.error ? (
           <section className="overflow-hidden rounded-xl bg-surface">

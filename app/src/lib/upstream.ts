@@ -147,7 +147,7 @@ const JAKARTA_DATE = new Intl.DateTimeFormat('en-CA', {
   day: '2-digit',
 })
 
-function jakartaDateParts(d: Date): { year: string; month: string; day: string } {
+export function jakartaDateParts(d: Date): { year: string; month: string; day: string } {
   const parts = JAKARTA_DATE.formatToParts(d)
   const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? ''
   return { year: get('year'), month: get('month'), day: get('day') }

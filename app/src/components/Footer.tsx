@@ -35,7 +35,15 @@ export function Footer({ lastFetchedAt }: Props) {
         >
           poskobanjir.dsdadki.web.id
         </a>{' '}
-        · {t.footerAgency}
+        · {t.footerAgency} · {t.footerFallback}{' '}
+        <a
+          className="text-ink-2 underline-offset-4 hover:text-ink hover:underline"
+          href="https://bpbd.jakarta.go.id/waterlevel"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          bpbd.jakarta.go.id
+        </a>
       </p>
       <p className="mt-1">
         {lastFetchedAt

@@ -25,11 +25,13 @@ export type Messages = {
   trendRising: string
   trendFalling: string
   trendFlat: string
+  manualReadingNote: string
 
   statsRegion: string
   gathering: string
   peak24h: string
   rate60m: string
+  rate2h: string
   rateUnit: string
   inBand: (band: string) => string
   forecast: string
@@ -107,6 +109,7 @@ export type Messages = {
   footerFetching: string
   footerAlertsNote: string
   footerSourceCode: string
+  footerFallback: string
 
   aboutSummary: string
   aboutIntro: string
@@ -138,11 +141,14 @@ const en: Messages = {
   trendRising: 'rising',
   trendFalling: 'falling',
   trendFlat: 'flat',
+  manualReadingNote:
+    'Hourly manual gauge reading via BPBD DKI — the automatic sensor has not reported anything newer.',
 
   statsRegion: 'Last 24 hours summary',
   gathering: 'Gathering 24-hour trend…',
   peak24h: '24h peak',
   rate60m: '60-min rate',
+  rate2h: '2-hour rate',
   rateUnit: 'cm/h',
   inBand: (band) => `In ${band}`,
   forecast: 'Forecast',
@@ -228,6 +234,7 @@ const en: Messages = {
   footerFetching: 'Fetching latest data…',
   footerAlertsNote: 'alerts only fire while this page is open',
   footerSourceCode: 'source code',
+  footerFallback: 'hourly fallback',
 
   aboutSummary: 'About this page',
   aboutIntro:
@@ -262,11 +269,14 @@ const id: Messages = {
   trendRising: 'naik',
   trendFalling: 'turun',
   trendFlat: 'datar',
+  manualReadingNote:
+    'Pembacaan papan duga manual per jam dari BPBD DKI — sensor otomatis belum mengirim data yang lebih baru.',
 
   statsRegion: 'Ringkasan 24 jam',
   gathering: 'Mengumpulkan tren 24 jam…',
   peak24h: 'Puncak 24 jam',
   rate60m: 'Laju 60 menit',
+  rate2h: 'Laju 2 jam',
   rateUnit: 'cm/j',
   inBand: (band) => `Di ${band}`,
   forecast: 'Perkiraan',
@@ -346,6 +356,7 @@ const id: Messages = {
   footerFetching: 'Mengambil data terbaru…',
   footerAlertsNote: 'peringatan hanya aktif selama halaman terbuka',
   footerSourceCode: 'kode sumber',
+  footerFallback: 'cadangan per jam',
 
   aboutSummary: 'Tentang halaman ini',
   aboutIntro:
