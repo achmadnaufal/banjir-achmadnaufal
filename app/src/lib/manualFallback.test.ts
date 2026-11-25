@@ -1,18 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { STALE_AFTER_MS } from '../config/station'
 import type { HistoryResponse, SnapshotRow } from '../types/upstream'
-import { VELOCITY_WINDOW_MS } from './analytics'
 import {
-  analysisAnchor,
   etaFromNow,
-  MANUAL_RATE_WINDOW_MS,
   MANUAL_RETAIN_MS,
-  MANUAL_STALE_AFTER_MS,
   mergeManualTables,
   pickReading,
-  rateWindowMs,
   sensorReading,
-  staleAfterMs,
   withManualPoints,
   type StationDefaults,
 } from './manualFallback'
@@ -230,11 +223,6 @@ describe('analysis anchor and ETA', () => {
   const observedAt = new Date('2026-11-21T19:00:00+07:00')
   const now = new Date('2026-11-21T19:55:00+07:00')
 
-  it('measures hourly readings from the reading itself and sensor readings from now', () => {
-    expect(analysisAnchor('manual', observedAt, now)).toBe(observedAt)
-    expect(analysisAnchor('sensor', observedAt, now)).toBe(now)
-  })
-
   it('takes the time already elapsed off an ETA measured from the reading', () => {
     const eta = { etaMs: 200 * 60_000, direction: 'rising' as const, targetLevel: 'siaga2' as const }
     expect(etaFromNow(eta, observedAt, now)?.etaMs).toBe(145 * 60_000)
@@ -248,18 +236,3 @@ describe('analysis anchor and ETA', () => {
   })
 })
 
-describe('rateWindowMs', () => {
-  it('keeps the sensor on 60 minutes and spans three hourly readings otherwise', () => {
-    expect(rateWindowMs('sensor')).toBe(VELOCITY_WINDOW_MS)
-    expect(rateWindowMs('manual')).toBe(MANUAL_RATE_WINDOW_MS)
-    expect(MANUAL_RATE_WINDOW_MS).toBe(2 * 60 * 60 * 1000)
-  })
-})
-
-describe('staleAfterMs', () => {
-  it('gives the hourly manual table more slack than the 10-minute sensor', () => {
-    expect(staleAfterMs('sensor')).toBe(STALE_AFTER_MS)
-    expect(staleAfterMs('manual')).toBe(MANUAL_STALE_AFTER_MS)
-    expect(MANUAL_STALE_AFTER_MS).toBeGreaterThan(60 * 60 * 1000)
-  })
-})

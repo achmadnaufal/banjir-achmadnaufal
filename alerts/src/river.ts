@@ -1,11 +1,10 @@
 import { BPBD_POST, BPBD_READINGS_URL, PESANGGRAHAN } from '../../app/src/config/station'
 import { dropAnomalies, velocityCmPerHour } from '../../app/src/lib/analytics'
 import { buildBpbdBody, parseBpbdReadings } from '../../app/src/lib/bpbd'
+import { analysisAnchor, inferCadence, rateWindowMs, type Cadence } from '../../app/src/lib/cadence'
 import {
-  analysisAnchor,
   mergeManualTables,
   pickReading,
-  rateWindowMs,
   sensorReading,
   type ReadingSource,
 } from '../../app/src/lib/manualFallback'
@@ -31,6 +30,8 @@ export type RiverReading = {
   prevLevelCm: number | null
   ratePerHour: number | null
   source: ReadingSource
+  /** How often the chosen source is reporting; drives every time window. */
+  cadence: Cadence
   thresholdsCm: ThresholdsCm
 }
 
@@ -93,14 +94,16 @@ function toRiverReading(
   if (picked === null) return null
   const { snapshot, source } = picked
   const points = dropAnomalies((source === 'manual' ? table : history)?.points ?? [])
-  const anchor = analysisAnchor(source, snapshot.observedAt, now)
+  const cadence = inferCadence(points)
+  const anchor = analysisAnchor(cadence, snapshot.observedAt, now)
   return {
     levelCm: snapshot.levelCm,
     band: classify(snapshot.levelCm, snapshot.thresholdsCm),
     observedAt: snapshot.observedAt,
     prevLevelCm: snapshot.prevLevelCm,
-    ratePerHour: velocityCmPerHour(points, anchor, rateWindowMs(source)),
+    ratePerHour: velocityCmPerHour(points, anchor, rateWindowMs(cadence)),
     source,
+    cadence,
     thresholdsCm: snapshot.thresholdsCm,
   }
 }

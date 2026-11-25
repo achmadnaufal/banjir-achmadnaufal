@@ -8,12 +8,8 @@ import { usePushAlerts } from './hooks/usePushAlerts'
 import { useTransitionAlert } from './hooks/useTransitionAlert'
 import { LocaleProvider } from './i18n/LocaleProvider'
 import { useI18n } from './i18n/useI18n'
-import {
-  pickReading,
-  sensorReading,
-  staleAfterMs,
-  withManualPoints,
-} from './lib/manualFallback'
+import { inferCadence, staleAfterMs } from './lib/cadence'
+import { pickReading, sensorReading, withManualPoints } from './lib/manualFallback'
 import { STATION_DEFAULTS } from './lib/stationDefaults'
 import { classify } from './lib/siaga'
 import { AboutSection } from './components/AboutSection'
@@ -78,6 +74,12 @@ function Dashboard() {
   )
   const displaySnapshot = reading?.snapshot ?? null
   const source = reading?.source ?? 'sensor'
+  // How often the source on show is reporting (DSDA has been both 10-minute
+  // and hourly); every time window on the card follows it.
+  const cadence = useMemo(
+    () => inferCadence((source === 'manual' ? manual.data : stats.data)?.points ?? []),
+    [source, manual.data, stats.data],
+  )
   // Windows for the manual points end at the reading they lead up to.
   const readingAt = displaySnapshot?.observedAt ?? null
 
@@ -143,9 +145,8 @@ function Dashboard() {
           <StatusCard
             snapshot={reading.snapshot}
             source={reading.source}
-            isStale={
-              now.getTime() - reading.snapshot.observedAt.getTime() > staleAfterMs(reading.source)
-            }
+            cadence={cadence}
+            isStale={now.getTime() - reading.snapshot.observedAt.getTime() > staleAfterMs(cadence)}
             now={now}
             stats={statsData}
           />

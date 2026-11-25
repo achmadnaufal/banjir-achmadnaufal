@@ -12,6 +12,7 @@ function reading(over: Partial<RiverReading> = {}): RiverReading {
     prevLevelCm: 190,
     ratePerHour: 10,
     source: 'manual',
+    cadence: 'hourly',
     thresholdsCm: T,
     ...over,
   }

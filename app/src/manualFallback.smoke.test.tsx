@@ -99,3 +99,48 @@ describe('App with the sensor feed silent', () => {
     expect(notify).not.toHaveBeenCalled()
   })
 })
+
+// 2026-11-25: gate 160 is back in DSDA's feed, but hourly at irregular minutes.
+const XML_HOURLY_160 = `<?xml version="1.0"?><root><SP_GET_LAST_STATUS_PINTU_AIR>
+<ID_PINTU_AIR>160</ID_PINTU_AIR><NAMA_PINTU_AIR>P.S. Pesanggrahan 1</NAMA_PINTU_AIR>
+<LOKASI>Pesanggrahan</LOKASI><LATITUDE>-6.39</LATITUDE><LONGITUDE>106.77</LONGITUDE>
+<SIAGA1>3500</SIAGA1><SIAGA2>2500</SIAGA2><SIAGA3>1500</SIAGA3>
+<TANGGAL>2026-11-25T19:09:00+07:00</TANGGAL><TINGGI_AIR>1900</TINGGI_AIR>
+<TINGGI_AIR_SEBELUMNYA>1300</TINGGI_AIR_SEBELUMNYA><STATUS_SIAGA>Status : Siaga 3</STATUS_SIAGA>
+</SP_GET_LAST_STATUS_PINTU_AIR></root>`
+const HOURLY_SERIES =
+  '2026-11-25 15.00.00,90;2026-11-25 16.00.00,100;2026-11-25 16.00.00,100;2026-11-25 17.13.00,130;' +
+  '2026-11-25 18.19.00,130;2026-11-25 18.19.00,130;2026-11-25 19.09.00,190|3500;2500;1500'
+const EMPTY_BPBD = JSON.stringify({ time: '', ketinggian: '', siaga1: '', siaga2: '', siaga3: '' })
+
+describe('App with an hourly DSDA series', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-25T19:40:00+07:00'))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        const u = String(url)
+        if (u.includes('bpbd.jakarta.go.id')) return respond(EMPTY_BPBD)
+        if (u.includes('xmldata')) return respond(XML_HOURLY_160)
+        return respond(HOURLY_SERIES)
+      }),
+    )
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+    localStorage.clear()
+  })
+
+  it('treats a 31-minute-old hourly reading as current, and reads its rise over two hours', async () => {
+    render(<App />)
+    const hero = await screen.findByTestId('hero-level')
+    expect(hero).toHaveTextContent('190')
+    // The 20-minute rule for 10-minute data called this "stale".
+    expect(screen.queryByText('stale data')).not.toBeInTheDocument()
+    expect(await screen.findByText('2-hour rate')).toBeInTheDocument()
+    expect(screen.getByText(/\+\d+\.\d cm\/h/)).toBeInTheDocument()
+    expect(screen.queryByText('steady')).not.toBeInTheDocument()
+  })
+})

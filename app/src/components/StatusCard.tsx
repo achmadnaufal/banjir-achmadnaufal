@@ -1,5 +1,6 @@
 import { useI18n } from '../i18n/useI18n'
 import { formatStamp, timeSince, trendArrow } from '../lib/format'
+import type { Cadence } from '../lib/cadence'
 import type { ReadingSource } from '../lib/manualFallback'
 import { classify, trend, type Trend } from '../lib/siaga'
 import { statusToken } from '../lib/statusTokens'
@@ -10,6 +11,7 @@ import { StatsRow } from './StatsRow'
 type Props = {
   snapshot: SnapshotRow
   source: ReadingSource
+  cadence: Cadence
   isStale: boolean
   now: Date
   stats?: HistoryResponse | null
@@ -23,7 +25,7 @@ const ARROW_CLASS: Record<Trend, string> = {
   flat: 'text-ink-3',
 }
 
-export function StatusCard({ snapshot, source, isStale, now, stats }: Props) {
+export function StatusCard({ snapshot, source, cadence, isStale, now, stats }: Props) {
   const { t, tag } = useI18n()
   const trendLabel: Record<Trend, string> = {
     up: t.trendRising,
@@ -90,7 +92,7 @@ export function StatusCard({ snapshot, source, isStale, now, stats }: Props) {
 
       {stats && (
         <div className="border-t border-hairline px-5 py-4">
-          <StatsRow history={stats} snapshot={snapshot} now={now} source={source} />
+          <StatsRow history={stats} snapshot={snapshot} now={now} cadence={cadence} />
         </div>
       )}
     </section>

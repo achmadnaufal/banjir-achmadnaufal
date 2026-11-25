@@ -1,18 +1,23 @@
 import { describe, expect, it } from 'vitest'
+import type { Cadence } from '../../app/src/lib/cadence'
 import type { SiagaLevel } from '../../app/src/lib/siaga'
 import { decideAlert, INITIAL_ALERT_STATE, type AlertKind, type AlertState } from './rules'
 
 const at = (hm: string) => new Date(`2026-11-21T${hm}:00+07:00`)
-const r = (band: SiagaLevel, hm: string) => ({ band, observedAt: at(hm) })
+const r = (band: SiagaLevel, hm: string, cadence: Cadence = 'frequent') => ({ band, observedAt: at(hm), cadence })
 /** Readings reach the watcher a few minutes after they are taken. */
 const arrival = (hm: string) => new Date(at(hm).getTime() + 5 * 60_000)
 
 /** Feeds readings in order and returns what each one pushed. */
-function run(readings: Array<[SiagaLevel, string]>, start: AlertState = INITIAL_ALERT_STATE) {
+function run(
+  readings: Array<[SiagaLevel, string]>,
+  start: AlertState = INITIAL_ALERT_STATE,
+  cadence: Cadence = 'frequent',
+) {
   let state = start
   const pushes: Array<AlertKind | null> = []
   for (const [band, hm] of readings) {
-    const d = decideAlert(r(band, hm), state, arrival(hm))
+    const d = decideAlert(r(band, hm, cadence), state, arrival(hm))
     pushes.push(d.push)
     state = d.next
   }
@@ -167,6 +172,29 @@ describe('decideAlert', () => {
       run([['siaga3', '19:00'], ['normal', '20:00'], ['normal', '21:00'], ['normal', '22:00'], ['siaga3', '22:10']])
         .pushes,
     ).toEqual(['alert', null, 'allClear', null, 'alert'])
+  })
+
+  describe('with hourly readings at irregular minutes (DSDA since 2026-11-25)', () => {
+    it('sends the hourly update for each new hour, even 50 minutes apart', () => {
+      // 18:19 then 19:09: a 60-minute rule skipped every other hourly update.
+      expect(
+        run([['siaga3', '17:13'], ['siaga3', '18:19'], ['siaga3', '19:09'], ['siaga3', '20:12']], INITIAL_ALERT_STATE, 'hourly')
+          .pushes,
+      ).toEqual(['alert', 'alert', 'alert', 'alert'])
+    })
+
+    it('still sends no more than one update per hourly reading', () => {
+      expect(run([['siaga3', '19:09'], ['siaga3', '19:30']], INITIAL_ALERT_STATE, 'hourly').pushes).toEqual([
+        'alert',
+        null,
+      ])
+    })
+
+    it('gives the all-clear after two hourly readings below 150 cm, 52 minutes apart', () => {
+      expect(
+        run([['siaga3', '19:09'], ['normal', '20:08'], ['normal', '21:00']], INITIAL_ALERT_STATE, 'hourly').pushes,
+      ).toEqual(['alert', null, 'allClear'])
+    })
   })
 
   it('does not mutate the state it is given', () => {

@@ -7,6 +7,7 @@ import { readRiver } from './river'
 // Captured 2026-11-21 19:51 WIB, the evening the DSDA sensor for gate 160 was silent.
 const BPBD = readFileSync(resolve(__dirname, '../../app/src/test/fixtures/bpbd-charttma.json'), 'utf8')
 const NOW = new Date('2026-11-21T19:55:00+07:00')
+const at = (iso: string) => new Date(iso)
 const SILENT_SERIES = '' // what DSDA serves for gate 160 since 18 Nov: no points
 const LIVE_SERIES = '2026-11-21 19.40.00,225;2026-11-21 19.50.00,230|3500;2500;1500'
 
@@ -43,6 +44,7 @@ describe('readRiver', () => {
       levelCm: 200,
       band: 'siaga3',
       source: 'manual',
+      cadence: 'hourly',
       prevLevelCm: 190,
       observedAt: new Date('2026-11-21T19:00:00+07:00'),
       thresholdsCm: { siaga1: 350, siaga2: 250, siaga3: 150 },
@@ -55,6 +57,23 @@ describe('readRiver', () => {
     const r = await readRiver(fakeFetch(() => ok(LIVE_SERIES), () => ok(BPBD)), NOW, null)
     expect(r.reading?.source).toBe('sensor')
     expect(r.reading?.levelCm).toBe(230)
+  })
+
+  it('reads an hourly DSDA series as hourly, with a rate from its last readings', async () => {
+    // Gate 160 on 2026-11-25: back, but hourly at irregular minutes, some duplicated.
+    const hourly =
+      '2026-11-21 16.00.00,100;2026-11-21 16.00.00,100;2026-11-21 17.13.00,130;' +
+      '2026-11-21 18.19.00,130;2026-11-21 18.19.00,130;2026-11-21 19.09.00,190|3500;2500;1500'
+    const empty = JSON.stringify({ time: '', ketinggian: '', siaga1: '', siaga2: '', siaga3: '' })
+    const r = await readRiver(fakeFetch(() => ok(hourly), () => ok(empty)), at('2026-11-21T19:40:00+07:00'), null)
+    expect(r.reading).toMatchObject({ source: 'sensor', cadence: 'hourly', levelCm: 190, band: 'siaga3' })
+    // 17:13 130, 18:19 130, 19:09 190 within 2 h of the reading: rising ~29 cm/h.
+    expect(r.reading?.ratePerHour).toBeGreaterThan(25)
+  })
+
+  it('reads a 10-minute DSDA series as frequent', async () => {
+    const r = await readRiver(fakeFetch(() => ok(LIVE_SERIES), () => ok(BPBD)), NOW, null)
+    expect(r.reading?.cadence).toBe('frequent')
   })
 
   it('merges BPBD into the stored table', async () => {

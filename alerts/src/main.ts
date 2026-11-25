@@ -72,6 +72,7 @@ const SAMPLE_READING: RiverReading = {
   prevLevelCm: 190,
   ratePerHour: 10,
   source: 'manual',
+  cadence: 'hourly',
   thresholdsCm: { siaga1: 350, siaga2: 250, siaga3: 150 },
 }
 

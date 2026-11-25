@@ -1,6 +1,5 @@
-import { STALE_AFTER_MS } from '../config/station'
 import type { HistoryPoint, HistoryResponse, SnapshotRow } from '../types/upstream'
-import { dropAnomalies, freshestSnapshot, VELOCITY_WINDOW_MS, type EtaResult } from './analytics'
+import { dropAnomalies, freshestSnapshot, type EtaResult } from './analytics'
 
 /**
  * Choosing between DSDA's sensor and BPBD's hourly manual readings.
@@ -25,36 +24,8 @@ export type StationDefaults = Pick<
   'id' | 'name' | 'location' | 'lat' | 'lng' | 'thresholdsCm'
 >
 
-/** Readings land on the hour and are posted up to about an hour later. */
-export const MANUAL_STALE_AFTER_MS = 2 * 60 * 60 * 1000
-
 /** Long enough that the 24h stats survive midnight, when BPBD's table resets. */
 export const MANUAL_RETAIN_MS = 48 * 60 * 60 * 1000
-
-/**
- * A 60-minute window holds one hourly reading at most — too few for a rate —
- * and an unknown rate reads as "steady" in the forecast tile. Two hours back
- * from the latest reading spans its last three hours.
- */
-export const MANUAL_RATE_WINDOW_MS = 2 * 60 * 60 * 1000
-
-export function staleAfterMs(source: ReadingSource): number {
-  return source === 'manual' ? MANUAL_STALE_AFTER_MS : STALE_AFTER_MS
-}
-
-export function rateWindowMs(source: ReadingSource): number {
-  return source === 'manual' ? MANUAL_RATE_WINDOW_MS : VELOCITY_WINDOW_MS
-}
-
-/**
- * The instant rate and forecast are measured from. A sensor reading is at
- * most minutes old, so "now" works. An hourly reading can be two hours old;
- * measuring from now would slide its window off the readings and push every
- * ETA later by the reading's age.
- */
-export function analysisAnchor(source: ReadingSource, observedAt: Date, now: Date): Date {
-  return source === 'manual' ? observedAt : now
-}
 
 /** Restates an ETA computed from `anchor` as time remaining from `now`. */
 export function etaFromNow(eta: EtaResult | null, anchor: Date, now: Date): EtaResult | null {

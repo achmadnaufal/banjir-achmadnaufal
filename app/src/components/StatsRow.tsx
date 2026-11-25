@@ -8,12 +8,8 @@ import {
 } from '../lib/analytics'
 import { useI18n } from '../i18n/useI18n'
 import { formatDuration, timeSince } from '../lib/format'
-import {
-  analysisAnchor,
-  etaFromNow,
-  rateWindowMs,
-  type ReadingSource,
-} from '../lib/manualFallback'
+import { analysisAnchor, rateWindowMs, type Cadence } from '../lib/cadence'
+import { etaFromNow } from '../lib/manualFallback'
 import { siagaMeta, type Trend } from '../lib/siaga'
 import type { HistoryResponse, SnapshotRow } from '../types/upstream'
 
@@ -21,7 +17,8 @@ type Props = {
   history: HistoryResponse
   snapshot: SnapshotRow
   now: Date
-  source: ReadingSource
+  /** How often readings arrive: hourly data gets a wider window measured from the reading. */
+  cadence: Cadence
 }
 
 const ARROW_CLASS: Record<Trend, string> = {
@@ -56,13 +53,13 @@ function Tile({
   )
 }
 
-export function StatsRow({ history, snapshot, now, source }: Props) {
+export function StatsRow({ history, snapshot, now, cadence }: Props) {
   const { t, tag } = useI18n()
   const cleanPoints = useMemo(() => dropAnomalies(history.points), [history.points])
   const thresholds = history.thresholdsCm ?? snapshot.thresholdsCm
   const peak = useMemo(() => peakInWindow(cleanPoints), [cleanPoints])
-  const windowMs = rateWindowMs(source)
-  const anchor = analysisAnchor(source, snapshot.observedAt, now)
+  const windowMs = rateWindowMs(cadence)
+  const anchor = analysisAnchor(cadence, snapshot.observedAt, now)
   const velocity = useMemo(
     () => velocityCmPerHour(cleanPoints, anchor, windowMs),
     [cleanPoints, anchor, windowMs],
@@ -74,19 +71,19 @@ export function StatsRow({ history, snapshot, now, source }: Props) {
   const eta = useMemo(
     () =>
       etaFromNow(
-        // The sensor keeps etaToNextBand's own default window; only the hourly
-        // table needs the wider one.
+        // Frequent data keeps etaToNextBand's own default window; only hourly
+        // data needs the wider one.
         etaToNextBand(
           snapshot.levelCm,
           cleanPoints,
           anchor,
           thresholds,
-          source === 'manual' ? { windowMs } : {},
+          cadence === 'hourly' ? { windowMs } : {},
         ),
         anchor,
         now,
       ),
-    [snapshot.levelCm, cleanPoints, anchor, now, thresholds, source, windowMs],
+    [snapshot.levelCm, cleanPoints, anchor, now, thresholds, cadence, windowMs],
   )
 
   if (cleanPoints.length < 2) {
@@ -111,7 +108,7 @@ export function StatsRow({ history, snapshot, now, source }: Props) {
       />
 
       <Tile
-        label={source === 'manual' ? t.rate2h : t.rate60m}
+        label={cadence === 'hourly' ? t.rate2h : t.rate60m}
         value={
           velocity === null ? (
             '—'
